@@ -1,0 +1,101 @@
+project_id,employee_id,project_name,client,role,tools_used,experience_summary
+PRJ_0001,ID_0001,Website Redesign,Acme Corp,Frontend Developer,React,Developed responsive UI components and improved user experience
+PRJ_0002,ID_0003,Mobile App Development,Globex Inc,Mobile Developer,Flutter,Created cross-platform mobile app with seamless performance
+PRJ_0003,ID_0011,Data Migration,Initech,Data Engineer,Python,Automated data migration process reducing downtime by 30%
+PRJ_0004,ID_0007,Cloud Infrastructure Setup,Stark Industries,Cloud Engineer,AWS,Designed and deployed scalable cloud infrastructure
+PRJ_0005,ID_0067,CRM Integration,Wayne Enterprises,Backend Developer,Node.js,Integrated CRM system with existing backend services
+PRJ_0006,ID_0074,Security Audit,Oscorp,Security Analyst,Wireshark,Conducted comprehensive security audit and vulnerability assessment
+PRJ_0007,ID_0083,AI Chatbot Development,Wonka Industries,AI Engineer,TensorFlow,Developed AI chatbot improving customer support efficiency
+PRJ_0008,ID_0089,ERP Implementation,Tyrell Corp,Project Manager,MS Project,Led ERP implementation project ensuring timely delivery
+PRJ_0009,ID_0050,Website Optimization,Acme Corp,SEO Specialist,Google Analytics,Improved website traffic by 40% through SEO strategies
+PRJ_0010,ID_0077,Database Design,Globex Inc,Database Administrator,MySQL,Designed normalized database schema for new application
+PRJ_0011,ID_0073,Mobile Game Development,Initech,Game Developer,Unity,Developed engaging mobile game with 100k+ downloads
+PRJ_0012,ID_0014,API Development,Stark Industries,API Developer,Django REST Framework,Created RESTful APIs for internal services
+PRJ_0013,ID_0019,Network Setup,Wayne Enterprises,Network Engineer,Cisco IOS,Configured secure and reliable corporate network
+PRJ_0014,ID_0070,Cloud Migration,Oscorp,Cloud Engineer,Azure,Managed migration of legacy systems to Azure cloud
+PRJ_0015,ID_0037,Data Analysis,Wonka Industries,Data Analyst,Tableau,Provided actionable insights through data visualization
+PRJ_0016,ID_0069,DevOps Pipeline,Tyrell Corp,DevOps Engineer,Jenkins,Implemented CI/CD pipeline reducing deployment time by 50%
+PRJ_0017,ID_0074,Mobile App Testing,Acme Corp,QA Engineer,Appium,Automated mobile app testing improving test coverage
+PRJ_0018,ID_0097,Frontend Development,Globex Inc,Frontend Developer,Vue.js,Developed dynamic web interfaces with Vue.js
+PRJ_0019,ID_0039,Backend Refactoring,Initech,Backend Developer,Java Spring,Refactored legacy backend code improving maintainability
+PRJ_0020,ID_0073,Security Enhancement,Stark Industries,Security Analyst,Metasploit,Enhanced system security through penetration testing
+PRJ_0021,ID_0008,Cloud Cost Optimization,Wayne Enterprises,Cloud Engineer,AWS Cost Explorer,Reduced cloud expenses by 25% through optimization
+PRJ_0022,ID_0092,AI Model Training,Oscorp,AI Engineer,PyTorch,Trained deep learning models for image recognition
+PRJ_0023,ID_0087,Project Coordination,Wonka Industries,Project Manager,Asana,Coordinated cross-functional teams to meet project goals
+PRJ_0024,ID_0092,SEO Strategy,Tyrell Corp,SEO Specialist,SEMrush,Developed SEO strategy increasing organic search rankings
+PRJ_0025,ID_0025,Database Migration,Acme Corp,Database Administrator,PostgreSQL,Migrated database with zero downtime
+PRJ_0026,ID_0069,Mobile UI Design,Globex Inc,UI Designer,Figma,Designed intuitive mobile app interfaces
+PRJ_0027,ID_0088,API Integration,Initech,Backend Developer,Express.js,Integrated third-party APIs for enhanced functionality
+PRJ_0028,ID_0028,Network Security,Stark Industries,Security Analyst,Nessus,Performed network vulnerability scans and remediation
+PRJ_0029,ID_0012,Cloud Automation,Wayne Enterprises,DevOps Engineer,Terraform,Automated cloud infrastructure provisioning
+PRJ_0030,ID_0017,Data Warehouse Setup,Oscorp,Data Engineer,Redshift,Implemented scalable data warehouse solution
+PRJ_0031,ID_00556,Mobile App Localization,Wonka Industries,Mobile Developer,Android Studio,Localized app for multiple languages
+PRJ_0032,ID_0099,Frontend Testing,Tyrell Corp,QA Engineer,Jest,Developed unit tests for frontend components
+PRJ_0033,ID_0038,Backend API Development,Acme Corp,Backend Developer,Ruby on Rails,Developed robust backend APIs
+PRJ_0034,ID_0008,Cloud Security,Globex Inc,Security Analyst,CloudTrail,Monitored and secured cloud environments
+PRJ_0035,ID_0079,Project Planning,Initech,Project Manager,MS Project,Created detailed project plans and timelines
+PRJ_0036,ID_0071,SEO Content Creation,Stark Industries,SEO Specialist,Ahrefs,Created SEO-optimized content increasing site traffic
+PRJ_0037,ID_0049,Database Optimization,Wayne Enterprises,Database Administrator,Oracle,Optimized database queries improving performance
+PRJ_0038,ID_0025,Mobile App Debugging,Oscorp,Mobile Developer,Xcode,Resolved critical bugs in iOS app
+PRJ_0039,ID_0095,API Documentation,Wonka Industries,Technical Writer,Swagger,Created comprehensive API documentation
+PRJ_0040,ID_0051,Network Monitoring,Tyrell Corp,Network Engineer,Zabbix,Implemented network monitoring system
+PRJ_0041,ID_0001,Cloud Backup Setup,Acme Corp,Cloud Engineer,Google Cloud Storage,Configured automated cloud backups
+PRJ_0042,ID_0006,Data Visualization,Globex Inc,Data Analyst,Power BI,Developed interactive dashboards for business insights
+PRJ_0043,ID_0083,Mobile App Performance,Initech,Mobile Developer,Android Profiler,Improved app performance and reduced crashes
+PRJ_0044,ID_00556,Frontend Framework Migration,Stark Industries,Frontend Developer,Angular,Migrated legacy app to Angular framework
+PRJ_0045,ID_0098,Security Policy Development,Wayne Enterprises,Security Analyst,ISO 27001,Developed company-wide security policies
+PRJ_0046,ID_0050,Cloud Cost Analysis,Oscorp,Cloud Engineer,CloudWatch,Analyzed and reported cloud spending trends
+PRJ_0047,ID_0082,AI Data Labeling,Wonka Industries,AI Engineer,Labelbox,Managed data labeling for machine learning models
+PRJ_0048,ID_0037,Project Risk Management,Tyrell Corp,Project Manager,Risk Register,Identified and mitigated project risks
+PRJ_0049,ID_0084,SEO Audit,Acme Corp,SEO Specialist,Screaming Frog,Conducted SEO audit and implemented fixes
+PRJ_0050,ID_0059,Database Backup,Globex Inc,Database Administrator,pg_dump,Implemented regular database backup procedures
+PRJ_0051,ID_0054,Mobile App UI Testing,Initech,QA Engineer,Espresso,Automated UI tests for Android app
+PRJ_0052,ID_0052,API Security,Stark Industries,Security Analyst,OAuth 2.0,Secured APIs with OAuth 2.0 authentication
+PRJ_0053,ID_0004,Network Configuration,Wayne Enterprises,Network Engineer,Juniper OS,Configured network devices for optimal performance
+PRJ_0054,ID_0091,Cloud Infrastructure Monitoring,Oscorp,Cloud Engineer,Datadog,Monitored cloud infrastructure health
+PRJ_0055,ID_0062,Data Cleaning,Wonka Industries,Data Engineer,Pandas,Processed and cleaned large datasets
+PRJ_0056,ID_0045,Mobile App Feature Development,Tyrell Corp,Mobile Developer,Swift,Developed new features for iOS app
+PRJ_0057,ID_0083,Frontend Accessibility,Acme Corp,Frontend Developer,ARIA,Improved accessibility compliance of web app
+PRJ_0058,ID_0024,Backend Load Balancing,Globex Inc,Backend Developer,Nginx,Implemented load balancing for backend services
+PRJ_0059,ID_0015,Security Incident Response,Initech,Security Analyst,Splunk,Responded to and mitigated security incidents
+PRJ_0060,ID_0099,Cloud Architecture Design,Stark Industries,Cloud Engineer,Google Cloud Platform,Designed scalable cloud architecture
+PRJ_0061,ID_0010,Project Documentation,Wayne Enterprises,Technical Writer,Confluence,Created detailed project documentation
+PRJ_0062,ID_0022,SEO Link Building,Oscorp,SEO Specialist,Moz,Executed link building campaigns to improve SEO
+PRJ_0063,ID_0070,Database Replication,Wonka Industries,Database Administrator,SQL Server,Configured database replication for high availability
+PRJ_0064,ID_0094,Mobile App Crash Analysis,Tyrell Corp,QA Engineer,Crashlytics,Analyzed and fixed app crashes
+PRJ_0065,ID_0036,API Versioning,Acme Corp,Backend Developer,Swagger,Implemented API versioning strategy
+PRJ_0066,ID_0067,Network Troubleshooting,Globex Inc,Network Engineer,Wireshark,Troubleshot network issues and improved stability
+PRJ_0067,ID_0097,Cloud Security Compliance,Initech,Security Analyst,CIS Benchmarks,Ensured cloud compliance with security standards
+PRJ_0068,ID_0100,Data Pipeline Development,Stark Industries,Data Engineer,Apache Airflow,Developed automated data pipelines
+PRJ_0069,ID_0037,Mobile App User Testing,Wayne Enterprises,QA Engineer,TestFlight,Conducted user testing for iOS app
+PRJ_0070,ID_0052,Frontend Code Review,Oscorp,Frontend Developer,ESLint,Reviewed and improved frontend code quality
+PRJ_0071,ID_0099,Backend Microservices,Wonka Industries,Backend Developer,Docker,Developed microservices using Docker containers
+PRJ_0072,ID_0065,Security Training,Tyrell Corp,Security Analyst,Phishing Simulations,Conducted security awareness training
+PRJ_0073,ID_0038,Cloud Resource Provisioning,Acme Corp,Cloud Engineer,CloudFormation,Provisioned cloud resources using templates
+PRJ_0074,ID_0093,Data Reporting,Globex Inc,Data Analyst,Excel,Generated reports for business stakeholders
+PRJ_0075,ID_0029,Mobile App Analytics,Initech,Mobile Developer,Google Analytics,Integrated analytics for user behavior tracking
+PRJ_0076,ID_0059,Frontend Performance Tuning,Stark Industries,Frontend Developer,Chrome DevTools,Optimized frontend load times
+PRJ_0077,ID_0014,Security Patch Management,Wayne Enterprises,Security Analyst,WSUS,Managed security patches across systems
+PRJ_0078,ID_0057,Cloud Disaster Recovery,Oscorp,Cloud Engineer,Azure Site Recovery,Implemented disaster recovery plans
+PRJ_0079,ID_0046,AI Model Deployment,Wonka Industries,AI Engineer,Kubernetes,Deployed AI models on Kubernetes clusters
+PRJ_0080,ID_0037,Project Budgeting,Tyrell Corp,Project Manager,Excel,Managed project budgets and resource allocation
+PRJ_0081,ID_0097,SEO Keyword Research,Acme Corp,SEO Specialist,Google Keyword Planner,Conducted keyword research for SEO campaigns
+PRJ_0082,ID_0078,Database Indexing,Globex Inc,Database Administrator,MongoDB,Implemented indexing to improve query speed
+PRJ_0083,ID_0016,Mobile App Localization Testing,Initech,QA Engineer,Appium,Tested localized app versions
+PRJ_0084,ID_0099,API Load Testing,Stark Industries,QA Engineer,JMeter,Performed load testing on APIs
+PRJ_0085,ID_0085,Network Security Policy,Wayne Enterprises,Security Analyst,Firewall,Developed and enforced network security policies
+PRJ_0086,ID_0035,Cloud Cost Forecasting,Oscorp,Cloud Engineer,Cloudability,Forecasted cloud costs for budgeting
+PRJ_0087,ID_0021,Data Governance,Wonka Industries,Data Analyst,Collibra,Implemented data governance policies
+PRJ_0088,ID_0061,Mobile App Push Notifications,Tyrell Corp,Mobile Developer,Firebase,Integrated push notification services
+PRJ_0089,ID_0069,Frontend Component Library,Acme Corp,Frontend Developer,Storybook,Created reusable UI component library
+PRJ_0090,ID_0024,Backend API Optimization,Globex Inc,Backend Developer,Redis,Optimized API response times using caching
+PRJ_0091,ID_0027,Security Compliance Audit,Initech,Security Analyst,PCI DSS,Conducted compliance audit for payment systems
+PRJ_0092,ID_0091,Cloud Migration Planning,Stark Industries,Cloud Engineer,Azure Migrate,Planned migration to cloud infrastructure
+PRJ_0093,ID_0031,Project Scheduling,Wayne Enterprises,Project Manager,Smartsheet,Developed detailed project schedules
+PRJ_0094,ID_0043,SEO Content Strategy,Oscorp,SEO Specialist,Contentful,Developed content strategy for SEO improvement
+PRJ_0095,ID_0051,Database Security,Wonka Industries,Database Administrator,Encryption,Implemented database encryption and access controls
+PRJ_0096,ID_0032,Mobile App Beta Testing,Tyrell Corp,QA Engineer,TestFlight,Managed beta testing program
+PRJ_0097,ID_0052,API Gateway Setup,Acme Corp,Backend Developer,Kong,Configured API gateway for microservices
+PRJ_0098,ID_0039,Network Performance Tuning,Globex Inc,Network Engineer,NetFlow,Optimized network throughput and latency
+PRJ_0099,ID_0089,Cloud Security Monitoring,Initech,Security Analyst,Cloud Security Posture Management,Monitored cloud security posture
+PRJ_0100,ID_0051,Data Science Model Development,Stark Industries,Data Scientist,Scikit-learn,Developed predictive models for business insights
