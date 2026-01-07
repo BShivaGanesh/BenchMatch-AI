@@ -1,0 +1,101 @@
+employee_id,name,email,role,experience_years,primary_skill
+ID_0001,Olivia Martinez,olivia.martinez@example.com,Software Engineer,5.2,Python
+ID_0002,Liam Johnson,liam.johnson@example.com,Data Scientist,3.8,Machine Learning
+ID_0003,Emma Brown,emma.brown@example.com,Product Manager,7.1,Agile
+ID_0004,Noah Davis,noah.davis@example.com,DevOps Engineer,4.5,Docker
+ID_0005,Ava Wilson,ava.wilson@example.com,UX Designer,6,User Research
+ID_0006,Elijah Moore,elijah.moore@example.com,Backend Developer,8.3,Java
+ID_0007,Sophia Taylor,sophia.taylor@example.com,QA Engineer,2.9,Automation Testing
+ID_0008,James Anderson,james.anderson@example.com,Frontend Developer,5.7,React
+ID_0009,Isabella Thomas,isabella.thomas@example.com,Data Analyst,3.4,SQL
+ID_0010,Benjamin Jackson,benjamin.jackson@example.com,System Administrator,9.1,Linux
+ID_0011,Mia White,mia.white@example.com,Technical Writer,4,Documentation
+ID_0012,Lucas Harris,lucas.harris@example.com,Mobile Developer,6.5,Swift
+ID_0013,Charlotte Martin,charlotte.martin@example.com,HR Specialist,7.8,Recruitment
+ID_0014,Mason Thompson,mason.thompson@example.com,Cloud Engineer,5.9,AWS
+ID_0015,Amelia Garcia,amelia.garcia@example.com,Database Administrator,8,Oracle
+ID_0016,Ethan Martinez,ethan.martinez@example.com,Security Analyst,3.3,Cybersecurity
+ID_0017,Evelyn Robinson,evelyn.robinson@example.com,Project Coordinator,4.7,Planning
+ID_0018,Alexander Clark,alexander.clark@example.com,Network Engineer,6.2,Cisco
+ID_0019,Harper Rodriguez,harper.rodriguez@example.com,Business Analyst,5.1,Requirements Gathering
+ID_0020,Daniel Lewis,daniel.lewis@example.com,Software Architect,10,Microservices
+ID_0021,Abigail Lee,abigail.lee@example.com,Content Strategist,3.6,SEO
+ID_0022,Matthew Walker,matthew.walker@example.com,Data Engineer,7.4,ETL
+ID_0023,Emily Hall,emily.hall@example.com,Graphic Designer,4.3,Adobe Photoshop
+ID_0024,Joseph Allen,joseph.allen@example.com,Technical Support,2.8,Troubleshooting
+ID_0025,Elizabeth Young,elizabeth.young@example.com,Marketing Manager,6.7,Digital Marketing
+ID_0026,David Hernandez,david.hernandez@example.com,Full Stack Developer,5.5,Node.js
+ID_0027,Sofia King,sofia.king@example.com,Research Scientist,8.6,Data Modeling
+ID_0028,Samuel Wright,samuel.wright@example.com,Operations Manager,9.3,Logistics
+ID_0029,Victoria Scott,victoria.scott@example.com,Sales Executive,4.1,CRM
+ID_0030,Andrew Green,andrew.green@example.com,AI Engineer,7.9,Deep Learning
+ID_0031,Grace Adams,grace.adams@example.com,HR Manager,6.4,Employee Relations
+ID_0032,Joshua Baker,joshua.baker@example.com,Cloud Architect,8.7,Azure
+ID_0033,Chloe Nelson,chloe.nelson@example.com,Content Writer,3.2,Copywriting
+ID_0034,Christopher Carter,christopher.carter@example.com,Database Developer,5.8,SQL Server
+ID_0035,Natalie Mitchell,natalie.mitchell@example.com,Product Owner,7,Scrum
+ID_0036,Anthony Perez,anthony.perez@example.com,Security Engineer,6.1,Penetration Testing
+ID_0037,Lillian Roberts,lillian.roberts@example.com,UI Designer,4.9,Sketch
+ID_0038,Jonathan Turner,jonathan.turner@example.com,Software Tester,3.7,Test Automation
+ID_0039,Zoe Phillips,zoe.phillips@example.com,Data Scientist,5.3,Python
+ID_0040,Christian Campbell,christian.campbell@example.com,DevOps Engineer,7.6,Kubernetes
+ID_0041,Hannah Parker,hannah.parker@example.com,Technical Recruiter,4.4,Interviewing
+ID_0042,David Evans,david.evans@example.com,Mobile Developer,6.8,Kotlin
+ID_0043,Samantha Edwards,samantha.edwards@example.com,Project Manager,9,Waterfall
+ID_0044,Jack Collins,jack.collins@example.com,Network Administrator,5,Firewall
+ID_0045,Addison Stewart,addison.stewart@example.com,Data Analyst,3.9,Tableau
+ID_0046,Henry Sanchez,henry.sanchez@example.com,Software Engineer,7.3,C++
+ID_0047,Ella Morris,ella.morris@example.com,UX Researcher,4.6,User Testing
+ID_0048,Wyatt Rogers,wyatt.rogers@example.com,Cloud Engineer,6.9,Google Cloud
+ID_0049,Scarlett Reed,scarlett.reed@example.com,Marketing Specialist,5.4,Content Marketing
+ID_0050,Caleb Cook,caleb.cook@example.com,Backend Developer,8.2,Go
+ID_0051,Aria Morgan,aria.morgan@example.com,QA Analyst,3.5,Manual Testing
+ID_0052,Isaac Bell,isaac.bell@example.com,Data Engineer,7.7,Spark
+ID_0053,Penelope Murphy,penelope.murphy@example.com,Product Manager,6.3,Kanban
+ID_0054,Julian Bailey,julian.bailey@example.com,Security Analyst,4.2,Incident Response
+ID_0055,Nora Rivera,nora.rivera@example.com,Graphic Designer,5.6,Illustrator
+ID_00556,Thomas Cooper,thomas.cooper@example.com,Technical Support,3.1,Help Desk
+ID_0057,Eleanor Richardson,eleanor.richardson@example.com,HR Specialist,6.5,Onboarding
+ID_0058,Charles Cox,charles.cox@example.com,Full Stack Developer,7.8,Ruby on Rails
+ID_0059,Madison Howard,madison.howard@example.com,Research Scientist,8.1,Statistics
+ID_0060,Leo Ward,leo.ward@example.com,Operations Manager,9.4,Supply Chain
+ID_0061,Elizabeth Torres,elizabeth.torres@example.com,Sales Manager,5.7,Negotiation
+ID_0062,David Peterson,david.peterson@example.com,AI Engineer,6.6,NLP
+ID_0063,Victoria Gray,victoria.gray@example.com,HR Manager,7.2,Conflict Resolution
+ID_0064,Joseph Ramirez,joseph.ramirez@example.com,Cloud Architect,8.4,DevOps
+ID_0065,Grace James,grace.james@example.com,Content Writer,3.3,Editing
+ID_0066,Andrew Watson,andrew.watson@example.com,Database Developer,5.9,PostgreSQL
+ID_0067,Samantha Brooks,samantha.brooks@example.com,Product Owner,7.5,User Stories
+ID_0068,Anthony Kelly,anthony.kelly@example.com,Security Engineer,6,Firewall
+ID_0069,Lillian Sanders,lillian.sanders@example.com,UI Designer,4.8,Figma
+ID_0070,Jonathan Price,jonathan.price@example.com,Software Tester,3.6,Regression Testing
+ID_0071,Zoe Bennett,zoe.bennett@example.com,Data Scientist,5.1,R
+ID_0072,Christian Wood,christian.wood@example.com,DevOps Engineer,7.4,Ansible
+ID_0073,Hannah Barnes,hannah.barnes@example.com,Technical Recruiter,4.3,Candidate Sourcing
+ID_0074,David Ross,david.ross@example.com,Mobile Developer,6.7,Flutter
+ID_0075,Samantha Henderson,samantha.henderson@example.com,Project Manager,8.9,Stakeholder Management
+ID_0076,Jack Coleman,jack.coleman@example.com,Network Administrator,5.2,VPN
+ID_0077,Addison Jenkins,addison.jenkins@example.com,Data Analyst,4,Power BI
+ID_0078,Henry Perry,henry.perry@example.com,Software Engineer,7.1,Scala
+ID_0079,Ella Powell,ella.powell@example.com,UX Researcher,4.5,Persona Development
+ID_0080,Wyatt Long,wyatt.long@example.com,Cloud Engineer,6.8,Terraform
+ID_0081,Scarlett Patterson,scarlett.patterson@example.com,Marketing Specialist,5.3,Email Marketing
+ID_0082,Caleb Hughes,caleb.hughes@example.com,Backend Developer,8,Rust
+ID_0083,Aria Flores,aria.flores@example.com,QA Analyst,3.4,Performance Testing
+ID_0084,Isaac Washington,isaac.washington@example.com,Data Engineer,7.6,Hadoop
+ID_0085,Penelope Butler,penelope.butler@example.com,Product Manager,6.2,Product Roadmap
+ID_0086,Julian Simmons,julian.simmons@example.com,Security Analyst,4.1,Threat Analysis
+ID_0087,Nora Foster,nora.foster@example.com,Graphic Designer,5.5,InDesign
+ID_0088,Thomas Gonzales,thomas.gonzales@example.com,Technical Support,3,Remote Assistance
+ID_0089,Eleanor Bryant,eleanor.bryant@example.com,HR Specialist,6.4,Payroll
+ID_0090,Charles Alexander,charles.alexander@example.com,Full Stack Developer,7.7,Django
+ID_0091,Madison Russell,madison.russell@example.com,Research Scientist,8.3,Matlab
+ID_0092,Leo Griffin,leo.griffin@example.com,Operations Manager,9.2,Inventory Management
+ID_0093,Elizabeth Diaz,elizabeth.diaz@example.com,Sales Manager,5.6,Lead Generation
+ID_0094,David Hayes,david.hayes@example.com,AI Engineer,6.5,Computer Vision
+ID_0095,Victoria Myers,victoria.myers@example.com,HR Manager,7.1,Training
+ID_0096,Joseph Ford,joseph.ford@example.com,Cloud Architect,8.3,Serverless
+ID_0097,Grace Hamilton,grace.hamilton@example.com,Content Writer,3.1,Technical Writing
+ID_0098,Andrew Graham,andrew.graham@example.com,Database Developer,5.7,MongoDB
+ID_0099,Samantha Sullivan,samantha.sullivan@example.com,Product Owner,7.3,Backlog Management
+ID_0100,Anthony Wallace,anthony.wallace@example.com,Security Engineer,6.2,Encryption
