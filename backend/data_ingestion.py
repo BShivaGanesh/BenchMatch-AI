@@ -24,14 +24,35 @@ EMBED_MODEL = "nomic-embed-text-v1.5"
 # LOAD CSVs
 # ---------------------------
 # ---------------------------
-# AZURE SQL CONFIG
+# AZURE SQL CONFIG (ENTRA ID AUTH)
 # ---------------------------
-AZURE_SQL_CONN_STR = os.getenv(
-    "AZURE_SQL_CONN_STRING",
-    "mssql+pyodbc://USER:PASSWORD@SERVER.database.windows.net/DB?driver=ODBC+Driver+18+for+SQL+Server"
+# Using Entra ID (Azure AD) authentication with pyodbc + ODBC Driver 18
+import urllib.parse
+
+AZURE_SQL_SERVER = "ai-db-dbs.database.windows.net"
+AZURE_SQL_DATABASE = "db_bench"
+
+# For Entra ID Interactive Authentication (opens browser for login)
+AZURE_SQL_CONN_STR = (
+    f"mssql+pyodbc://@{AZURE_SQL_SERVER}/{AZURE_SQL_DATABASE}"
+    "?driver=ODBC+Driver+18+for+SQL+Server"
+    "&authentication=ActiveDirectoryInteractive"
 )
 
-engine = create_engine(AZURE_SQL_CONN_STR)
+logger.info(f"Connecting to Azure SQL: {AZURE_SQL_SERVER}/{AZURE_SQL_DATABASE} (Entra ID)")
+
+# Create engine (lazy connection - only connects when needed)
+engine = None
+
+def get_engine():
+    """Get or create the SQLAlchemy engine."""
+    global engine
+    if engine is None:
+        engine = create_engine(AZURE_SQL_CONN_STR)
+    return engine
+
+# Connection will be tested on first actual data load (lazy initialization)
+    # Don't raise - let it fail gracefully on actual usage
 
 # def load_csvs():
 #     try:
@@ -58,15 +79,16 @@ def load_from_azure_sql():
     Acts as a drop-in replacement for CSV loading.
     """
     try:
-        employees = pd.read_sql("SELECT * FROM employees", engine)
-        skills = pd.read_sql("SELECT * FROM skills", engine)
-        certs = pd.read_sql("SELECT * FROM certifications", engine)
-        projects = pd.read_sql("SELECT * FROM project_history", engine)
+        db_engine = get_engine()
+        employees = pd.read_sql("SELECT * FROM employees", db_engine)
+        skills = pd.read_sql("SELECT * FROM skills", db_engine)
+        certs = pd.read_sql("SELECT * FROM certifications", db_engine)
+        projects = pd.read_sql("SELECT * FROM project_history", db_engine)
 
-        logger.info(f"Loaded {len(employees)} employees from Azure SQL")
-        logger.info(f"Loaded {len(skills)} skill records from Azure SQL")
-        logger.info(f"Loaded {len(certs)} certification records from Azure SQL")
-        logger.info(f"Loaded {len(projects)} project records from Azure SQL")
+        logger.info(f"✓ Loaded {len(employees)} employees from Azure SQL")
+        logger.info(f"✓ Loaded {len(skills)} skill records from Azure SQL")
+        logger.info(f"✓ Loaded {len(certs)} certification records from Azure SQL")
+        logger.info(f"✓ Loaded {len(projects)} project records from Azure SQL")
 
         return employees, skills, certs, projects
 
@@ -88,9 +110,10 @@ def load_bench_status():
     Load bench status from Azure SQL and index by employee_id.
     """
     try:
+        db_engine = get_engine()
         bench_df = pd.read_sql(
             "SELECT employee_id, status FROM bench_status",
-            engine
+            db_engine
         )
         return bench_df.set_index("employee_id")
 
@@ -159,11 +182,11 @@ def get_embedding(text):
 # ---------------------------
 def ingest():
     """
-    CSV → Aggregation → Embedding → ChromaDB Pipeline
+    Azure SQL → Aggregation → Embedding → ChromaDB Pipeline
     Entity-based chunking: One employee = One chunk = One embedding
     """
     try:
-        logger.info("🔹 Loading CSV files...")
+        logger.info("🔹 Loading data from Azure SQL Database...")
         employees, skills, certs, projects = load_from_azure_sql()
 
         logger.info("🔹 Aggregating employee data...")
