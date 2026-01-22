@@ -4,7 +4,7 @@ ID_SKILL_002,ID_0014,Java,Intermediate,3.2
 ID_SKILL_003,ID_0034,Project Management,Expert,8.0
 ID_SKILL_004,ID_0008,Data Analysis,Advanced,4.7
 ID_SKILL_005,ID_0035,SQL,Intermediate,2.9
-ID_SKILL_006,ID_0036,JavaScript,Advanced,6.1
+ID_SKILL_006,ID_0036,JavaScript React Frontend,Advanced,6.1
 ID_SKILL_007,ID_0086,Machine Learning,Expert,7.3
 ID_SKILL_008,ID_0055,Cloud Computing,Intermediate,3.8
 ID_SKILL_009,ID_0076,DevOps,Advanced,5.0
@@ -99,3 +99,6 @@ ID_SKILL_097,ID_0016,Machine Learning,Expert,7.6
 ID_SKILL_098,ID_0024,Cloud Computing,Intermediate,4.1
 ID_SKILL_099,ID_0066,DevOps,Advanced,5.5
 ID_SKILL_100,ID_0092,UI/UX Design,Intermediate,3.8
+ID_SKILL_110,ID_0008,React,Advanced,4.7
+ID_SKILL_111,ID_0008,Frontend,Advanced,4.7
+ID_SKILL_112,ID_0008,AWS,Advanced,4.7
