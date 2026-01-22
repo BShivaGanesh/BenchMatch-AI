@@ -5,17 +5,24 @@ from pathlib import Path
 import logging
 from sqlalchemy import create_engine
 import os
+from llama_index.llms.ollama import Ollama
+
+NOMIC_API_KEY = os.getenv("NOMIC_API_KEY")
+if not NOMIC_API_KEY:
+    raise ValueError("❌ Set NOMIC_API_KEY environment variable first!")
 
 # ---------------------------
 # SETUP LOGGING
 # ---------------------------
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 logger = logging.getLogger(__name__)
 
 # ---------------------------
 # CONFIG
 # ---------------------------
-DATA_DIR = Path("data")  
+DATA_DIR = Path("data")
 CHROMA_DIR = "chroma_data"
 COLLECTION_NAME = "employees"
 EMBED_MODEL = "nomic-embed-text-v1.5"
@@ -39,10 +46,13 @@ AZURE_SQL_CONN_STR = (
     "&authentication=ActiveDirectoryInteractive"
 )
 
-logger.info(f"Connecting to Azure SQL: {AZURE_SQL_SERVER}/{AZURE_SQL_DATABASE} (Entra ID)")
+logger.info(
+    f"Connecting to Azure SQL: {AZURE_SQL_SERVER}/{AZURE_SQL_DATABASE} (Entra ID)"
+)
 
 # Create engine (lazy connection - only connects when needed)
 engine = None
+
 
 def get_engine():
     """Get or create the SQLAlchemy engine."""
@@ -51,29 +61,31 @@ def get_engine():
         engine = create_engine(AZURE_SQL_CONN_STR)
     return engine
 
-# Connection will be tested on first actual data load (lazy initialization)
-    # Don't raise - let it fail gracefully on actual usage
 
-# def load_csvs():
-#     try:
-#         employees = pd.read_csv(DATA_DIR / "employees.csv")
-#         skills = pd.read_csv(DATA_DIR / "skills.csv")
-#         certs = pd.read_csv(DATA_DIR / "certifications.csv")
-#         projects = pd.read_csv(DATA_DIR / "project_history.csv")
-        
-#         logger.info(f"Loaded {len(employees)} employees")
-#         logger.info(f"Loaded {len(skills)} skill records")
-#         logger.info(f"Loaded {len(certs)} certification records")
-#         logger.info(f"Loaded {len(projects)} project records")
-        
-#         return employees, skills, certs, projects
-#     except FileNotFoundError as e:
-#         logger.error(f"CSV file not found: {e}")
-#         raise
-#     except Exception as e:
-#         logger.error(f"Error loading CSVs: {e}")
-#         raise
-def load_from_azure_sql():
+# Connection will be tested on first actual data load (lazy initialization)
+# Don't raise - let it fail gracefully on actual usage
+
+
+def load_csvs():
+    try:
+        employees = pd.read_csv(DATA_DIR / "employees.csv")
+        skills = pd.read_csv(DATA_DIR / "skills.csv")
+        certs = pd.read_csv(DATA_DIR / "certifications.csv")
+        projects = pd.read_csv(DATA_DIR / "project_history.csv")
+
+        logger.info(f"Loaded {len(employees)} employees")
+        logger.info(f"Loaded {len(skills)} skill records")
+        logger.info(f"Loaded {len(certs)} certification records")
+        logger.info(f"Loaded {len(projects)} project records")
+
+        return employees, skills, certs, projects
+    except FileNotFoundError as e:
+        logger.error(f"CSV file not found: {e}")
+        raise
+    except Exception as e:
+        logger.error(f"Error loading CSVs: {e}")
+        raise
+    # def load_from_azure_sql():
     """
     Load all employee-related tables from Azure SQL.
     Acts as a drop-in replacement for CSV loading.
@@ -97,51 +109,64 @@ def load_from_azure_sql():
         raise
 
 
-# def load_bench_status():
-#     """Load bench status data and return as indexed dataframe."""
-#     try:
-#         bench_df = pd.read_csv(DATA_DIR / "bench_status.csv")
-#         return bench_df.set_index("employee_id")
-#     except Exception as e:
-#         logger.error(f"Error loading bench_status.csv: {e}")
-#         raise
 def load_bench_status():
-    """
-    Load bench status from Azure SQL and index by employee_id.
-    """
+    """Load bench status data and return as indexed dataframe."""
     try:
-        db_engine = get_engine()
-        bench_df = pd.read_sql(
-            "SELECT employee_id, status FROM bench_status",
-            db_engine
-        )
+        bench_df = pd.read_csv(DATA_DIR / "bench_status.csv")
         return bench_df.set_index("employee_id")
-
     except Exception as e:
-        logger.error(f"Error loading bench status from Azure SQL: {e}")
+        logger.error(f"Error loading bench_status.csv: {e}")
         raise
+
+
+# def load_bench_status():
+#     """
+#     Load bench status from Azure SQL and index by employee_id.
+#     """
+#     try:
+#         db_engine = get_engine()
+#         bench_df = pd.read_sql(
+#             "SELECT employee_id, status FROM bench_status",
+#             db_engine
+#         )
+#         return bench_df.set_index("employee_id")
+
+#     except Exception as e:
+#         logger.error(f"Error loading bench status from Azure SQL: {e}")
+#         raise
 
 
 # ---------------------------
 # AGGREGATE EMPLOYEE DATA
 # ---------------------------
 def aggregate_employee_data(employees, skills, certs, projects):
-    skills_grp = skills.groupby("employee_id").apply(
-        lambda x: ", ".join(
-            f"{r.skill_name} ({r.years_experience} yrs)" for _, r in x.iterrows()
+    skills_grp = (
+        skills.groupby("employee_id")
+        .apply(
+            lambda x: ", ".join(
+                f"{r.skill_name} ({r.years_experience} yrs)" for _, r in x.iterrows()
+            )
         )
-    ).reset_index(name="skills")
+        .reset_index(name="skills")
+    )
 
-    certs_grp = certs.groupby("employee_id")["certificate_name"] \
-        .apply(lambda x: ", ".join(x)).reset_index(name="certifications")
+    certs_grp = (
+        certs.groupby("employee_id")["certificate_name"]
+        .apply(lambda x: ", ".join(x))
+        .reset_index(name="certifications")
+    )
 
-    projects_grp = projects.groupby("employee_id")["experience_summary"] \
-        .apply(lambda x: " ".join(x)).reset_index(name="experience")
+    projects_grp = (
+        projects.groupby("employee_id")["experience_summary"]
+        .apply(lambda x: " ".join(x))
+        .reset_index(name="experience")
+    )
 
-    df = employees \
-        .merge(skills_grp, on="employee_id", how="left") \
-        .merge(certs_grp, on="employee_id", how="left") \
+    df = (
+        employees.merge(skills_grp, on="employee_id", how="left")
+        .merge(certs_grp, on="employee_id", how="left")
         .merge(projects_grp, on="employee_id", how="left")
+    )
 
     df.fillna("", inplace=True)
     return df
@@ -157,7 +182,7 @@ Primary Skill: {row['primary_skill']}
 Skills: {row.get('skills', '')}
 Certifications: {row.get('certifications', '')}
 Experience: {row.get('experience', '')}"""
-    
+
     return chunk.strip()
 
 
@@ -169,7 +194,8 @@ def get_embedding(text):
     try:
         result = embed.text(
             texts=[text],
-            model=EMBED_MODEL
+            model=EMBED_MODEL,
+            # api_key=NOMIC_API_KEY
         )
         return result["embeddings"][0]
     except Exception as e:
@@ -187,7 +213,7 @@ def ingest():
     """
     try:
         logger.info("🔹 Loading data from Azure SQL Database...")
-        employees, skills, certs, projects = load_from_azure_sql()
+        employees, skills, certs, projects = load_csvs()
 
         logger.info("🔹 Aggregating employee data...")
         df = aggregate_employee_data(employees, skills, certs, projects)
@@ -196,8 +222,7 @@ def ingest():
         # Use persistent client for disk-based storage
         client = chromadb.PersistentClient(path=CHROMA_DIR)
         collection = client.get_or_create_collection(
-            name=COLLECTION_NAME,
-            metadata={"hnsw:space": "cosine"}
+            name=COLLECTION_NAME, metadata={"hnsw:space": "cosine"}
         )
 
         logger.info(f"🔹 Generating embeddings for {len(df)} employees...")
@@ -215,142 +240,234 @@ def ingest():
                     ids=[employee_id],
                     documents=[employee_text],
                     embeddings=[embedding],
-                    metadatas=[{
-                        "employee_id": employee_id,
-                        "role": str(row.get("role", "Unknown"))
-                    }]
+                    metadatas=[
+                        {
+                            "employee_id": employee_id,
+                            "role": str(row.get("role", "Unknown")),
+                        }
+                    ],
                 )
                 successful += 1
-                
+
                 if idx % 10 == 0:
                     logger.info(f"  Processed {idx}/{len(df)} employees...")
-                    
+
             except Exception as e:
-                logger.warning(f"Failed to process employee {row.get('employee_id', 'unknown')}: {e}")
+                logger.warning(
+                    f"Failed to process employee {row.get('employee_id', 'unknown')}: {e}"
+                )
                 failed += 1
 
         logger.info(f"Ingestion complete: {successful} succeeded, {failed} failed")
-        logger.info(f"ChromaDB collection '{COLLECTION_NAME}' has {collection.count()} embeddings")
+        logger.info(
+            f"ChromaDB collection '{COLLECTION_NAME}' has {collection.count()} embeddings"
+        )
         logger.info(f"Data persisted to {CHROMA_DIR}/")
-        
+
         return collection
-        
+
     except Exception as e:
         logger.error(f"Ingestion pipeline failed: {e}")
         raise
 
+    """Parse query to extract skills, experience, certifications."""
+    import re
 
-# ---------------------------
-# SEARCH FUNCTION
-# ---------------------------
-# def search_employees(query_text: str, top_n: int = 5, allow_partial: bool = True):
-#     """
-#     Semantic search for employees based on free-text project requirement.
-#     Filters by bench status (Bench or Partial if allow_partial=True).
-    
-#     Args:
-#         query_text: Free-text project requirement
-#         top_n: Number of top matches to return
-#         allow_partial: Include "Partial" bench status employees (default: True)
-        
-#     Returns:
-#         List of dicts with employee_id, role, bench_status, and similarity_score
-#     """
-#     try:
-#         logger.info(f"🔍 Searching for: '{query_text}'")
-        
-#         # Load bench status data
-#         bench_df = load_bench_status()
-        
-#         # Load persisted ChromaDB
-#         client = chromadb.PersistentClient(path=CHROMA_DIR)
-#         collection = client.get_collection(COLLECTION_NAME)
-        
-#         # Generate embedding for query
-#         query_embedding = get_embedding(query_text)
-        
-#         # Perform similarity search with wider window to account for filtering
-#         results = collection.query(
-#             query_embeddings=[query_embedding],
-#             n_results=top_n * 3,  # widen retrieval to account for bench filtering
-#             include=["metadatas", "distances"]
-#         )
-        
-#         # Format results with bench filtering
-#         matches = []
-#         if results["ids"] and len(results["ids"]) > 0:
-#             for emp_id, metadata, distance in zip(
-#                 results["ids"][0], 
-#                 results["metadatas"][0], 
-#                 results["distances"][0]
-#             ):
-#                 # Filter by bench status
-#                 if emp_id not in bench_df.index:
-#                     continue
-                
-#                 status = bench_df.loc[emp_id]["status"]
-                
-#                 # Include only "Bench" or "Partial" (if allowed)
-#                 if status == "Bench" or (allow_partial and status == "Partial"):
-#                     matches.append({
-#                         "employee_id": emp_id,
-#                         "role": metadata.get("role", "Unknown"),
-#                         "bench_status": status,
-#                         "similarity_score": round(1 - distance, 4)
-#                     })
-                
-#                 # Stop when we have enough matches
-#                 if len(matches) == top_n:
-#                     break
-        
-#         logger.info(f"Found {len(matches)} bench-eligible candidates")
-#         return matches
-        
-#     except Exception as e:
-#         logger.error(f"Search failed: {e}")
-#         raise
+    # Extract years of experience
+    exp_match = re.search(r"(\d+)\s*(?:years?|yrs?)", query_text.lower())
+    required_exp = int(exp_match.group(1)) if exp_match else 0
+
+    # Extract skills (common tech keywords)
+    tech_keywords = [
+        "react",
+        "node",
+        "typescript",
+        "javascript",
+        "python",
+        "java",
+        "aws",
+        "azure",
+        "kubernetes",
+        "docker",
+        "sql",
+        "postgresql",
+        "frontend",
+        "backend",
+        "fullstack",
+        "full stack",
+        "devops",
+    ]
+
+    required_skills = [skill for skill in tech_keywords if skill in query_text.lower()]
+
+    # Extract certifications (if any mentioned)
+    cert_keywords = [
+        "aws solutions architect",
+        "azure dp",
+        "certified",
+        "pmp",
+        "scrum master",
+    ]
+    required_certs = [cert for cert in cert_keywords if cert in query_text.lower()]
+
+    return {
+        "skills": required_skills,
+        "experience_years": required_exp,
+        "certifications": required_certs,
+    }
+
+
+def calculate_skill_matches(required_skills, emp_skills_df, emp_id):
+    """Compare required skills with candidate's actual skills."""
+    emp_skills = emp_skills_df[emp_skills_df["employee_id"] == emp_id]
+
+    skill_details = []
+    matched_count = 0
+
+    for req_skill in required_skills:
+        # Find matching skills in employee's skillset
+        matches = emp_skills[
+            emp_skills["skill_name"].str.lower().str.contains(req_skill, na=False)
+        ]
+
+        if not matches.empty:
+            best_match = matches.iloc[0]
+            skill_details.append(
+                {
+                    "required_skill": req_skill.capitalize(),
+                    "candidate_evidence": f"{best_match['skill_name']} ({best_match.get('years_experience', 0)} yrs)",
+                    "confidence": 95,  # High confidence for exact match
+                }
+            )
+            matched_count += 1
+        else:
+            skill_details.append(
+                {
+                    "required_skill": req_skill.capitalize(),
+                    "candidate_evidence": "Not found",
+                    "confidence": 0,
+                }
+            )
+
+    match_percentage = (
+        (matched_count / len(required_skills) * 100) if required_skills else 0
+    )
+
+    return skill_details, int(match_percentage)
+
+
+def calculate_cert_matches(required_certs, emp_certs_df, emp_id):
+    """Strict certification matching + additional certs."""
+    emp_certs = emp_certs_df[emp_certs_df["employee_id"] == emp_id]
+    emp_cert_list = (
+        [c.lower() for c in emp_certs["certificate_name"].str.lower().tolist()]
+        if not emp_certs.empty
+        else []
+    )
+
+    cert_details = {"required": [], "additional": []}
+
+    matched_required = 0
+
+    # STRICT matching for REQUIRED certifications
+    for req_cert in required_certs:
+        req_lower = req_cert.lower()
+        is_met = False
+
+        for emp_cert in emp_cert_list:
+            # Exact or partial match (case insensitive)
+            if req_lower in emp_cert or emp_cert in req_lower:
+                is_met = True
+                break
+
+        cert_details["required"].append(
+            {
+                "certificate_name": req_cert.title(),
+                "status": "✓ Met" if is_met else "✗ Missing",
+                "issued_by": "",
+            }
+        )
+
+        if is_met:
+            matched_required += 1
+
+    # Additional certifications (not matching required)
+    for idx, emp_cert_row in emp_certs.iterrows():
+        emp_cert_name = emp_cert_row["certificate_name"].lower()
+        is_required = any(req.lower() in emp_cert_name for req in required_certs)
+
+        if not is_required:
+            cert_details["additional"].append(
+                {
+                    "certificate_name": emp_cert_row["certificate_name"],
+                    "status": "Held",
+                    "issued_by": emp_cert_row.get("issued_by", "N/A"),
+                }
+            )
+
+    # CERTIFICATION SCORE
+    if required_certs:
+        cert_match_pct = int((matched_required / len(required_certs)) * 100)
+    else:
+        # No required certs = bonus for having any certs
+        cert_match_pct = min(len(emp_cert_list) * 15, 60)  # Cap at 60% max bonus
+
+    return cert_details, cert_match_pct
+
 
 def search_employees(
-    query_text: str,
+    # Structured form inputs (from frontend)
+    required_skills: list = None,
+    required_certs: list = None,
+    min_experience: int = 0,
+    role_title: str = "",
+    requirement_summary: str = "",
+    # Search parameters
     top_n: int = 5,
-    allow_partial: bool = True,   # kept for future use
-    debug: bool = True
+    allow_partial: bool = True,
+    debug: bool = True,
 ):
     """
-    Hybrid search: embeddings + business logic + field-level matching + re-ranking.
-    
-    Strategy:
-    1. Normalize short queries (add context)
-    2. Retrieve top-K with embeddings (wide net)
-    3. Apply bench status filter (business rule)
-    4. Boost exact role matches (categorical logic)
-    5. Boost primary skill matches (field importance)
-    6. Re-rank by combined score
+    Structured search with form inputs (no parsing needed).
+
+    Args:
+        required_skills: List of skill names from frontend tags (e.g., ["React", "Node.js", "AWS"])
+        required_certs: List of certification names (e.g., ["AWS Solutions Architect", "Azure DP-203"])
+        min_experience: Minimum years of experience required (int)
+        role_title: Job role title (e.g., "Senior Full Stack Engineer")
+        requirement_summary: Free-text project description (for embeddings)
+        top_n: Number of results to return
+        allow_partial: Include partial bench status
+        debug: Enable debug logging
+
+    Returns:
+        List of ranked candidates with detailed breakdown
     """
 
-    logger.info(f"🔍 Original query: '{query_text}'")
-    logger.info(f"Allow Partial Bench: {allow_partial}")
+    # Set defaults
+    required_skills = required_skills or []
+    required_certs = required_certs or []
+
+    # Normalize inputs (lowercase for matching)
+    required_skills = [s.lower().strip() for s in required_skills]
+    required_certs = [c.strip() for c in required_certs]
+
+    logger.info(f"🔍 Search Request:")
+    logger.info(f"  Skills: {required_skills}")
+    logger.info(f"  Certs: {required_certs}")
+    logger.info(f"  Min Exp: {min_experience} years")
+    logger.info(f"  Role: {role_title}")
+
+    # Build embedding query (use summary + role + skills)
+    embedding_query = f"{role_title} {requirement_summary} {' '.join(required_skills)}"
+    logger.info(f"🔎 Embedding query: '{embedding_query[:100]}...'")
 
     # ---------------------------
-    # 1. NORMALIZE QUERY (ADD CONTEXT TO SHORT QUERIES)
-    # ---------------------------
-    def normalize_query(q: str) -> str:
-        tokens = q.strip().split()
-        if len(tokens) == 1:
-            return f"{q} developer engineer professional"
-        if len(tokens) == 2:
-            return f"{q} professional development experience"
-        return q
-
-    normalized_query = normalize_query(query_text)
-    logger.info(f"🔎 Normalized query: '{normalized_query}'")
-
-    # ---------------------------
-    # 2. LOAD DATA
+    # LOAD DATA
     # ---------------------------
     bench_df = load_bench_status()
-    employees_df, skills_df, certs_df, projects_df = load_from_azure_sql()
-    
+    employees_df, skills_df, certs_df, projects_df = load_csvs()
+
     # Merge to have all employee data in one place
     full_emp_df = employees_df.copy()
 
@@ -360,12 +477,12 @@ def search_employees(
         )
 
     # ---------------------------
-    # 3. RETRIEVE CANDIDATES WITH EMBEDDINGS
+    # RETRIEVE CANDIDATES WITH EMBEDDINGS
     # ---------------------------
     client = chromadb.PersistentClient(path=CHROMA_DIR)
     collection = client.get_collection(COLLECTION_NAME)
 
-    query_embedding = get_embedding(normalized_query)
+    query_embedding = get_embedding(embedding_query)
 
     # Wide retrieval window to get enough candidates after filtering
     retrieval_k = max(top_n * 6, 35)
@@ -374,20 +491,18 @@ def search_employees(
     results = collection.query(
         query_embeddings=[query_embedding],
         n_results=retrieval_k,
-        include=["metadatas", "distances"]
+        include=["metadatas", "distances"],
     )
 
     # ---------------------------
-    # 4. APPLY BENCH STATUS FILTER + BUILD MATCH LIST
+    # APPLY BENCH STATUS FILTER + BUILD MATCH LIST
     # ---------------------------
     candidates = []
     dropped_not_eligible = 0
     dropped_missing = 0
 
     for emp_id, metadata, distance in zip(
-        results["ids"][0],
-        results["metadatas"][0],
-        results["distances"][0]
+        results["ids"][0], results["metadatas"][0], results["distances"][0]
     ):
         # Check if employee has bench status
         if emp_id not in bench_df.index:
@@ -413,9 +528,11 @@ def search_employees(
             continue
 
         emp_row = emp_data.iloc[0]
-        
+
         # Get employee's skills for matching
-        emp_skills = skills_df[skills_df["employee_id"] == emp_id]["skill_name"].tolist()
+        emp_skills = skills_df[skills_df["employee_id"] == emp_id][
+            "skill_name"
+        ].tolist()
         emp_primary = str(emp_row.get("primary_skill", "")).lower()
         emp_role = str(emp_row.get("role", "")).lower()
 
@@ -423,81 +540,213 @@ def search_employees(
         embedding_score = 1 - distance
 
         # ---------------------------
-        # 5. BOOST SIGNALS (BUSINESS LOGIC)
+        # BOOST SIGNALS (BUSINESS LOGIC)
         # ---------------------------
         boost_factor = 1.0
 
         # SIGNAL 1: Exact role match (HIGHEST priority)
-        query_lower = query_text.lower()
-        if emp_role == query_lower:
-            boost_factor *= 2.0  # 100% boost (multiply by 2x)
-            logger.info(f"  🎯 {emp_id}: EXACT role match ({emp_role}) (×2.0)")
-        
+        role_lower = role_title.lower()
+        if emp_role == role_lower:
+            boost_factor *= 2.0
+            if debug:
+                logger.info(f"  🎯 {emp_id}: EXACT role match ({emp_role}) (×2.0)")
+
         # SIGNAL 2: Role word appears in employee role
-        elif any(word in emp_role for word in query_lower.split() if len(word) > 2):
-            boost_factor *= 1.5  # 50% boost
-            logger.info(f"  ✓ {emp_id}: Role keyword in '{emp_role}' (×1.5)")
+        elif any(word in emp_role for word in role_lower.split() if len(word) > 2):
+            boost_factor *= 1.5
+            if debug:
+                logger.info(f"  ✓ {emp_id}: Role keyword in '{emp_role}' (×1.5)")
 
-        # SIGNAL 3: PRIMARY SKILL IS IN THE QUERY (VERY IMPORTANT)
-        if emp_primary and emp_primary in query_lower:
-            boost_factor *= 1.8  # 80% boost
-            logger.info(f"  ⭐ {emp_id}: PRIMARY skill '{emp_primary}' matches (×1.8)")
+        # SIGNAL 3: PRIMARY SKILL MATCHES REQUIRED SKILLS
+        if emp_primary and any(skill in emp_primary for skill in required_skills):
+            boost_factor *= 1.8
+            if debug:
+                logger.info(
+                    f"  ⭐ {emp_id}: PRIMARY skill '{emp_primary}' matches (×1.8)"
+                )
 
-        # SIGNAL 4: ANY SKILL IN EMPLOYEE MATCHES QUERY TERMS
-        query_terms = set(query_lower.split())
+        # SIGNAL 4: ANY SKILL IN EMPLOYEE MATCHES REQUIRED SKILLS
         emp_skills_lower = [s.lower() for s in emp_skills]
-        
-        matching_skills = [s for s in emp_skills_lower if any(term in s for term in query_terms)]
+
+        matching_skills = [
+            s for s in emp_skills_lower if any(req in s for req in required_skills)
+        ]
         if matching_skills:
             num_matches = len(matching_skills)
             skill_boost = min(1.0 + (num_matches * 0.3), 2.0)  # Cap at 2x
             boost_factor *= skill_boost
-            logger.info(f"  🔧 {emp_id}: Found {num_matches} matching skills (×{skill_boost:.1f})")
+            if debug:
+                logger.info(
+                    f"  🔧 {emp_id}: Found {num_matches} matching skills (×{skill_boost:.1f})"
+                )
 
         # Compute final score: embedding provides relevance, boosts apply field importance
         final_score = embedding_score * boost_factor
 
-        candidates.append({
-            "employee_id": emp_id,
-            "role": metadata.get("role", "Unknown"),
-            "primary_skill": emp_primary,
-            "bench_status": status,
-            "embedding_score": round(embedding_score, 4),
-            "boost_factor": round(boost_factor, 2),
-            "final_score": round(final_score, 4)
-        })
+        candidates.append(
+            {
+                "employee_id": emp_id,
+                "role": metadata.get("role", "Unknown"),
+                "primary_skill": emp_primary,
+                "bench_status": status,
+                "embedding_score": round(embedding_score, 4),
+                "boost_factor": round(boost_factor, 2),
+                "final_score": round(final_score, 4),
+            }
+        )
 
     # ---------------------------
-    # 6. RE-RANK BY FINAL SCORE
+    # RE-RANK BY FINAL SCORE
     # ---------------------------
     candidates.sort(key=lambda x: x["final_score"], reverse=True)
     matches = candidates[:top_n]
 
     # ---------------------------
-    # 7. FORMAT OUTPUT
+    # LLM ENRICHMENT WITH DETAILED BREAKDOWN
     # ---------------------------
-    output = []
-    for match in matches:
-        output.append({
-            "employee_id": match["employee_id"],
-            "role": match["role"],
-            "primary_skill": match["primary_skill"],
-            "bench_status": match["bench_status"],
-            "similarity_score": match["final_score"]  # User sees final score
-        })
+    llm = Ollama(model="llama3", request_timeout=60.0)
 
-    # ---------------------------
-    # 8. LOGGING
-    # ---------------------------
-    logger.info(f"✓ Found {len(output)} bench-eligible candidates (after re-ranking)")
+    requirements = {
+        "skills": required_skills,
+        "certifications": required_certs,
+        "experience_years": min_experience,
+    }
 
-    if debug:
-        logger.info(
-            f"🧹 Dropped {dropped_not_eligible} (not inactive), "
-            f"{dropped_missing} (missing bench record)"
+    final_results = []
+
+    for rank, match in enumerate(matches[:5], 1):
+        emp_id = match["employee_id"]
+        emp_row = full_emp_df[full_emp_df["employee_id"] == emp_id].iloc[0]
+
+        # Get employee data
+        emp_skills = skills_df[skills_df["employee_id"] == emp_id]
+        emp_certs = certs_df[certs_df["employee_id"] == emp_id]
+        emp_projects = projects_df[projects_df["employee_id"] == emp_id]
+
+        # CALCULATE REAL BREAKDOWN
+        skill_details, skills_match_pct = calculate_skill_matches(
+            requirements["skills"], skills_df, emp_id
         )
 
-    return output
+        cert_details, certs_match_pct = calculate_cert_matches(
+            requirements["certifications"], certs_df, emp_id
+        )
+
+        # Experience alignment
+        candidate_exp = emp_row.get("experience_years", 0)
+        required_exp = requirements["experience_years"]
+
+        if required_exp > 0:
+            exp_match_pct = min((candidate_exp / required_exp) * 100, 100)
+        else:
+            exp_match_pct = 80  # Default if no exp specified
+
+        # Availability (bench = 100%, else lower)
+        avail_pct = 100 if match["bench_status"] == "inactive" else 60
+
+        # WEIGHTED SCORE (60% skills, 20% exp, 10% certs, 10% avail)
+        weights = {
+            "skills": 0.60,
+            "experience": 0.20,
+            "certifications": 0.10,
+            "availability": 0.10,
+        }
+
+        overall_score = int(
+            skills_match_pct * weights["skills"]
+            + exp_match_pct * weights["experience"]
+            + certs_match_pct * weights["certifications"]
+            + avail_pct * weights["availability"]
+        )
+
+        # Build LLM prompt
+        requirement_text = (
+            f"{role_title} - {requirement_summary}"
+            if requirement_summary
+            else role_title
+        )
+
+        prompt = f"""You are an AI recruiter analyzing candidate fit.
+
+**Requirement:** "{requirement_text}"
+**Required Skills:** {', '.join(requirements['skills']) if requirements['skills'] else 'Not specified'}
+**Required Experience:** {required_exp}+ years
+**Required Certifications:** {', '.join(requirements['certifications']) if requirements['certifications'] else 'None specified'}
+
+**Candidate #{rank}: {emp_row.get('name', emp_id)}**
+Role: {match['role']}
+Primary Skill: {match['primary_skill']}
+Experience: {candidate_exp} years
+Bench Status: {match['bench_status']}
+Skills: {', '.join(emp_skills['skill_name'].head(5).tolist())}
+Certifications: {', '.join(emp_certs['certificate_name'].tolist()) if not emp_certs.empty else 'None'}
+
+**Breakdown Scores:**
+- Skills Match: {skills_match_pct}% (matched {sum(1 for s in skill_details if s['confidence'] > 0)}/{len(skill_details)} required skills)
+- Experience: {exp_match_pct:.0f}% ({candidate_exp} yrs vs {required_exp} yrs required)
+- Availability: {avail_pct}% (bench status: {match['bench_status']})
+- Certifications: {certs_match_pct}% ({len(requirements['certifications'])} required)
+
+**Overall Fit: {overall_score}%**
+
+Write a 2-sentence professional summary:
+1. Why this candidate fits (highlight strengths).
+2. Any gaps or concerns (if score < 80%).
+
+Focus on facts. Be concise."""
+
+        response = llm.complete(prompt)
+        llm_summary = str(response).strip()
+
+        # Prepare frontend payload
+        final_results.append(
+            {
+                "rank": rank,
+                "employee_id": emp_id,
+                "name": emp_row.get("name", f"Employee {emp_id}"),
+                "email": emp_row.get("email", ""),
+                "role": match["role"],
+                "bench_status": match["bench_status"],
+                "overall_fit_score": overall_score,
+                # Breakdown scores
+                "breakdown": {
+                    "skills_match": skills_match_pct,
+                    "experience_match": int(exp_match_pct),
+                    "availability_match": avail_pct,
+                    "certifications_match": certs_match_pct,
+                    "certification_details": cert_details,
+                },
+                # Detailed skill matching table
+                "skill_match_details": skill_details,
+                # Experience alignment
+                "experience_alignment": {
+                    "required_years": required_exp,
+                    "candidate_years": candidate_exp,
+                    "exceeds_requirement": candidate_exp >= required_exp,
+                },
+                # Project history
+                "relevant_projects": (
+                    [
+                        {
+                            "project_name": proj["project_name"],
+                            "experience_summary": proj["experience_summary"],
+                        }
+                        for _, proj in emp_projects.iterrows()
+                    ]
+                    if not emp_projects.empty
+                    else []
+                ),
+                # LLM reasoning
+                "llm_summary": llm_summary,
+                "ai_insight": llm_summary,  # Alias for frontend
+                # Original score
+                "similarity_score": match["final_score"],
+            }
+        )
+
+    logger.info(f"✓ Generated detailed breakdowns for {len(final_results)} candidates")
+    return final_results
+
 
 if __name__ == "__main__":
     ingest()
