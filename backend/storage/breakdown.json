@@ -1,0 +1,15 @@
+{
+  "9bfbad22-5314-4270-8e6f-0393479db2b0_EMP001": {
+    "requirement_id": "9bfbad22-5314-4270-8e6f-0393479db2b0",
+    "candidate_id": "EMP001",
+    "candidate_name": "Alice Johnson",
+    "breakdown": {
+      "skills_match": 95,
+      "experience_match": 90,
+      "certifications_match": 100,
+      "availability_match": 100
+    },
+    "llm_summary": "Alice is an excellent fit for this role. She has 8 years of full stack experience with strong React and Node.js expertise. Holds AWS Solutions Architect certification. Available immediately and has led similar platform migration projects.",
+    "stored_at": "2026-01-28T12:48:55.955359"
+  }
+}

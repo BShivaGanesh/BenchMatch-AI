@@ -1,0 +1,36 @@
+{
+  "9bfbad22-5314-4270-8e6f-0393479db2b0": {
+    "requirement_id": "9bfbad22-5314-4270-8e6f-0393479db2b0",
+    "candidates": [
+      {
+        "rank": 1,
+        "candidate_id": "EMP001",
+        "name": "Alice Johnson",
+        "role": "Senior Full Stack Engineer",
+        "overall_fit_score": 92,
+        "bench_status": "inactive",
+        "email": "alice.johnson@company.com"
+      },
+      {
+        "rank": 2,
+        "candidate_id": "EMP002",
+        "name": "Bob Smith",
+        "role": "Full Stack Engineer",
+        "overall_fit_score": 85,
+        "bench_status": "inactive",
+        "email": "bob.smith@company.com"
+      },
+      {
+        "rank": 3,
+        "candidate_id": "EMP003",
+        "name": "Carol Williams",
+        "role": "Senior Backend Engineer",
+        "overall_fit_score": 78,
+        "bench_status": "on-bench",
+        "email": "carol.williams@company.com"
+      }
+    ],
+    "stored_at": "2026-01-28T12:48:55.883396",
+    "candidate_count": 3
+  }
+}

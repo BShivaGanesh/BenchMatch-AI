@@ -1,0 +1,40 @@
+{
+  "9bfbad22-5314-4270-8e6f-0393479db2b0": {
+    "requirement_id": "9bfbad22-5314-4270-8e6f-0393479db2b0",
+    "client_name": "Global Retail Corp",
+    "role_title": "Senior Full Stack Engineer",
+    "required_skills": [
+      "React",
+      "Node.js",
+      "AWS",
+      "PostgreSQL"
+    ],
+    "minimum_experience": 5,
+    "mandatory_certifications": [
+      "AWS Solutions Architect",
+      "Azure DP-203"
+    ],
+    "availability_date": "2026-03-01",
+    "requirement_summary": "Greenfield loyalty platform rebuild. Need experienced full stack engineer with cloud expertise for a 6-month project. Will mentor 2 junior developers.",
+    "created_at": "2026-01-28T12:48:55.827182"
+  },
+  "bc1d8ee6-9764-407e-a34f-c457969c5e4e": {
+    "requirement_id": "bc1d8ee6-9764-407e-a34f-c457969c5e4e",
+    "client_name": "Global Retail Corp",
+    "role_title": "Senior Full Stack Engineer",
+    "required_skills": [
+      "React",
+      "Node.js",
+      "AWS",
+      "PostgreSQL"
+    ],
+    "minimum_experience": 5,
+    "mandatory_certifications": [
+      "AWS Solutions Architect",
+      "Azure DP-203"
+    ],
+    "availability_date": "2026-03-01",
+    "requirement_summary": "Greenfield loyalty platform rebuild. Need experienced full stack engineer with cloud expertise for a 6-month project. Will mentor 2 junior developers.",
+    "created_at": "2026-01-28T12:59:01.117284"
+  }
+}

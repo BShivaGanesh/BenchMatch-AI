@@ -1,16 +1,24 @@
 import pandas as pd
 import chromadb
+import nomic
 from nomic import embed
 from pathlib import Path
 import logging
 from sqlalchemy import create_engine
 import os
 from llama_index.llms.ollama import Ollama
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 NOMIC_API_KEY = os.getenv("NOMIC_API_KEY")
-if not NOMIC_API_KEY:
-    raise ValueError("❌ Set NOMIC_API_KEY environment variable first!")
-
+if NOMIC_API_KEY:
+    # Login to Nomic with API key
+    nomic.login(NOMIC_API_KEY)
+else:
+    logger = logging.getLogger(__name__)
+    logger.warning("⚠️  NOMIC_API_KEY not set. Embedding features will be disabled.")
 # ---------------------------
 # SETUP LOGGING
 # ---------------------------
@@ -39,11 +47,12 @@ import urllib.parse
 AZURE_SQL_SERVER = "ai-db-dbs.database.windows.net"
 AZURE_SQL_DATABASE = "db_bench"
 
-# For Entra ID Interactive Authentication (opens browser for login)
+# For Entra ID Integrated Authentication (uses Windows/Azure credentials)
+# No browser popup, uses current user's credentials
 AZURE_SQL_CONN_STR = (
     f"mssql+pyodbc://@{AZURE_SQL_SERVER}/{AZURE_SQL_DATABASE}"
     "?driver=ODBC+Driver+18+for+SQL+Server"
-    "&authentication=ActiveDirectoryInteractive"
+    "&authentication=ActiveDirectoryIntegrated"
 )
 
 logger.info(
@@ -195,7 +204,7 @@ def get_embedding(text):
         result = embed.text(
             texts=[text],
             model=EMBED_MODEL,
-            # api_key=NOMIC_API_KEY
+            task_type="search_query"  # Nomic requires task_type for v1.5
         )
         return result["embeddings"][0]
     except Exception as e:
@@ -604,7 +613,12 @@ def search_employees(
     # ---------------------------
     # LLM ENRICHMENT WITH DETAILED BREAKDOWN
     # ---------------------------
-    llm = Ollama(model="llama3", request_timeout=60.0)
+    # Use gemma3:4b (faster) or llama3 with increased timeout
+    try:
+        llm = Ollama(model="gemma3:4b", request_timeout=120.0)
+    except Exception as e:
+        logger.warning(f"Failed to initialize Ollama: {e}")
+        llm = None
 
     requirements = {
         "skills": required_skills,
@@ -695,41 +709,51 @@ Write a 2-sentence professional summary:
 
 Focus on facts. Be concise."""
 
-        response = llm.complete(prompt)
-        llm_summary = str(response).strip()
+        # LLM call with error handling
+        llm_summary = ""
+        if llm:
+            try:
+                response = llm.complete(prompt)
+                llm_summary = str(response).strip()
+            except Exception as e:
+                logger.warning(f"LLM call failed for {emp_id}: {e}")
+                llm_summary = f"Candidate with {overall_score}% overall fit. Skills match: {skills_match_pct}%, Experience: {candidate_exp} years."
 
-        # Prepare frontend payload
+        if not llm_summary:
+            llm_summary = f"Candidate with {overall_score}% overall fit. Skills match: {skills_match_pct}%, Experience: {candidate_exp} years."
+
+        # Prepare frontend payload (convert numpy types to native Python types)
         final_results.append(
             {
-                "rank": rank,
-                "employee_id": emp_id,
-                "name": emp_row.get("name", f"Employee {emp_id}"),
-                "email": emp_row.get("email", ""),
-                "role": match["role"],
-                "bench_status": match["bench_status"],
-                "overall_fit_score": overall_score,
+                "rank": int(rank),
+                "employee_id": str(emp_id),
+                "name": str(emp_row.get("name", f"Employee {emp_id}")),
+                "email": str(emp_row.get("email", "")),
+                "role": str(match["role"]),
+                "bench_status": str(match["bench_status"]),
+                "overall_fit_score": int(overall_score),
                 # Breakdown scores
                 "breakdown": {
-                    "skills_match": skills_match_pct,
+                    "skills_match": int(skills_match_pct),
                     "experience_match": int(exp_match_pct),
-                    "availability_match": avail_pct,
-                    "certifications_match": certs_match_pct,
+                    "availability_match": int(avail_pct),
+                    "certifications_match": int(certs_match_pct),
                     "certification_details": cert_details,
                 },
                 # Detailed skill matching table
                 "skill_match_details": skill_details,
                 # Experience alignment
                 "experience_alignment": {
-                    "required_years": required_exp,
-                    "candidate_years": candidate_exp,
-                    "exceeds_requirement": candidate_exp >= required_exp,
+                    "required_years": int(required_exp),
+                    "candidate_years": float(candidate_exp),
+                    "exceeds_requirement": bool(candidate_exp >= required_exp),
                 },
                 # Project history
                 "relevant_projects": (
                     [
                         {
-                            "project_name": proj["project_name"],
-                            "experience_summary": proj["experience_summary"],
+                            "project_name": str(proj["project_name"]),
+                            "experience_summary": str(proj["experience_summary"]),
                         }
                         for _, proj in emp_projects.iterrows()
                     ]
@@ -737,10 +761,10 @@ Focus on facts. Be concise."""
                     else []
                 ),
                 # LLM reasoning
-                "llm_summary": llm_summary,
-                "ai_insight": llm_summary,  # Alias for frontend
+                "llm_summary": str(llm_summary),
+                "ai_insight": str(llm_summary),  # Alias for frontend
                 # Original score
-                "similarity_score": match["final_score"],
+                "similarity_score": float(match["final_score"]),
             }
         )
 
