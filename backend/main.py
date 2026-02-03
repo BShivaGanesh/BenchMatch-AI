@@ -190,12 +190,13 @@ def search(request: SearchRequest):
         )
         
         # If requirement_id provided, store results to database
+        stored_shortlist_id = None
+        stored_candidates = []
         if request.requirement_id:
             try:
-                # Generate shortlist ID
+                engine = get_engine()
                 shortlist_id = f"SL-{str(uuid.uuid4())[:8].upper()}"
-                
-                # Insert into candidate_shortlists
+
                 insert_shortlist = """
                     INSERT INTO bench.candidate_shortlists (
                         shortlist_id, requirement_id, generated_at, 
@@ -204,79 +205,101 @@ def search(request: SearchRequest):
                         :sl_id, :req_id, GETDATE(), '1.0', :count
                     )
                 """
-                execute_query(insert_shortlist, {
-                    "sl_id": shortlist_id,
-                    "req_id": request.requirement_id,
-                    "count": len(results)
-                })
-                
-                # Insert each candidate into candidate_shortlist_items
-                for candidate in results:
-                    item_id = f"CSI-{str(uuid.uuid4())[:8].upper()}"
-                    
-                    # Extract breakdown scores
-                    breakdown = candidate.get("breakdown", {})
-                    
-                    # Prepare strengths - summarize skill matches (truncate for DB column limit)
-                    skill_details = candidate.get("skill_match_details", [])
-                    strengths_summary = ", ".join([
-                        s.get("required_skill", "") for s in skill_details 
-                        if s.get("confidence", 0) > 0
-                    ])[:450] or "No matching skills found"
-                    
-                    # Prepare gaps - skills not matched
-                    gaps_summary = ", ".join([
-                        s.get("required_skill", "") for s in skill_details 
-                        if s.get("confidence", 0) == 0
-                    ])[:450] or ""
-                    
-                    insert_item = """
-                        INSERT INTO bench.candidate_shortlist_items (
-                            shortlist_item_id, shortlist_id, employee_id, rank,
-                            overall_fit_score, skill_match_score, experience_score,
-                            availability_score, certifications_score, bench_status,
-                            reason_for_ranking, strengths, gaps, 
-                            llm_summary, llm_breakdown_json, selected
-                        ) VALUES (
-                            :item_id, :sl_id, :emp_id, :rank,
-                            :overall_fit, :skill_match, :exp_match,
-                            :avail_match, :cert_match, :bench_status,
-                            :reason, :strengths, :gaps,
-                            :llm_summary, :llm_json, 0
-                        )
-                    """
-                    
-                    execute_query(insert_item, {
-                        "item_id": item_id,
-                        "sl_id": shortlist_id,
-                        "emp_id": candidate["employee_id"],
-                        "rank": int(candidate["rank"]),
-                        "overall_fit": int(candidate["overall_fit_score"]),
-                        "skill_match": int(breakdown.get("skills_match", 0)),
-                        "exp_match": int(breakdown.get("experience_match", 0)),
-                        "avail_match": int(breakdown.get("availability_match", 0)),
-                        "cert_match": int(breakdown.get("certifications_match", 0)),
-                        "bench_status": str(candidate["bench_status"]),
-                        "reason": str(candidate.get("llm_summary", ""))[:200],
-                        "strengths": strengths_summary,
-                        "gaps": gaps_summary,
-                        "llm_summary": str(candidate.get("llm_summary", "")),
-                        "llm_json": json.dumps(breakdown)
-                    })
-                
-                # Update requirement status to 'In Progress'
+
+                insert_item = """
+                    INSERT INTO bench.candidate_shortlist_items (
+                        shortlist_item_id, shortlist_id, employee_id, rank,
+                        overall_fit_score, skill_match_score, experience_score,
+                        availability_score, certifications_score, bench_status,
+                        reason_for_ranking, strengths, gaps, 
+                        llm_summary, llm_breakdown_json, selected
+                    ) VALUES (
+                        :item_id, :sl_id, :emp_id, :rank,
+                        :overall_fit, :skill_match, :exp_match,
+                        :avail_match, :cert_match, :bench_status,
+                        :reason, :strengths, :gaps,
+                        :llm_summary, :llm_json, 0
+                    )
+                """
+
                 update_status = """
                     UPDATE bench.client_requirements 
-                    SET status = 'In Progress', updated_date = GETDATE()
+                    SET status = 'In Progress'
                     WHERE requirement_id = :req_id
                 """
-                execute_query(update_status, {"req_id": request.requirement_id})
-                
+
+                with engine.begin() as conn:
+                    conn.execute(text(insert_shortlist), {
+                        "sl_id": shortlist_id,
+                        "req_id": request.requirement_id,
+                        "count": len(results)
+                    })
+
+                    for candidate in results:
+                        item_id = f"CSI-{str(uuid.uuid4())[:8].upper()}"
+                        breakdown = candidate.get("breakdown", {})
+
+                        skill_details = candidate.get("skill_match_details", [])
+                        matched_skills = [
+                            str(s.get("required_skill", ""))
+                            for s in skill_details
+                            if int(s.get("confidence", 0)) > 0
+                        ]
+                        strengths_summary = ", ".join(matched_skills)[:450] if matched_skills else "No matching skills"
+
+                        unmatched_skills = [
+                            str(s.get("required_skill", ""))
+                            for s in skill_details
+                            if int(s.get("confidence", 0)) == 0
+                        ]
+                        gaps_summary = ", ".join(unmatched_skills)[:450] if unmatched_skills else ""
+
+                        llm_summary = str(candidate.get("llm_summary", "No summary available"))
+                        reason = llm_summary[:200]
+
+                        conn.execute(text(insert_item), {
+                            "item_id": item_id,
+                            "sl_id": shortlist_id,
+                            "emp_id": str(candidate["employee_id"]),
+                            "rank": int(candidate["rank"]),
+                            "overall_fit": int(candidate["overall_fit_score"]),
+                            "skill_match": int(breakdown.get("skills_match", 0)),
+                            "exp_match": int(breakdown.get("experience_match", 0)),
+                            "avail_match": int(breakdown.get("availability_match", 0)),
+                            "cert_match": int(breakdown.get("certifications_match", 0)),
+                            "bench_status": str(candidate["bench_status"]),
+                            "reason": reason,
+                            "strengths": strengths_summary,
+                            "gaps": gaps_summary,
+                            "llm_summary": llm_summary,
+                            "llm_json": json.dumps(breakdown)
+                        })
+
+                    conn.execute(text(update_status), {"req_id": request.requirement_id})
+
+                stored_shortlist_id = shortlist_id
+
+                stored_candidates = fetch_query(
+                    """
+                    SELECT 
+                        csi.shortlist_item_id, csi.employee_id, csi.rank,
+                        csi.overall_fit_score, csi.skill_match_score,
+                        csi.experience_score, csi.availability_score,
+                        csi.certifications_score, csi.bench_status,
+                        csi.reason_for_ranking, csi.strengths, csi.gaps,
+                        csi.llm_summary, csi.llm_breakdown_json
+                    FROM bench.candidate_shortlist_items csi
+                    WHERE csi.shortlist_id = :sl_id
+                    ORDER BY csi.rank
+                    """,
+                    {"sl_id": shortlist_id}
+                )
+
                 logger.info(f"✓ Stored {len(results)} candidates to shortlist {shortlist_id}")
-                
+
             except Exception as e:
                 logger.error(f"Error storing shortlist: {e}")
-                # Continue even if storage fails
+                raise HTTPException(status_code=500, detail=str(e))
         
         return {
             "status": "success",
@@ -285,7 +308,9 @@ def search(request: SearchRequest):
             "role_title": request.role_title,
             "matches": results,
             "count": len(results),
-            "requirement_status": "In Progress" if request.requirement_id else "Not Stored"
+            "requirement_status": "In Progress" if request.requirement_id else "Not Stored",
+            "stored_shortlist_id": stored_shortlist_id,
+            "stored_candidates": stored_candidates,
         }
     except Exception as e:
         logger.error(f"Search error: {e}")
@@ -538,8 +563,7 @@ def select_candidate(shortlist_item_id: str, request: SelectCandidateRequest = N
             # 3. Update client_requirements status to 'Matched'
             update_req = text("""
                 UPDATE bench.client_requirements 
-                SET status = 'Matched', 
-                    updated_date = GETDATE()
+                SET status = 'Matched'
                 WHERE requirement_id = :req_id
             """)
             conn.execute(update_req, {"req_id": requirement_id})
@@ -605,8 +629,7 @@ def update_requirement_status(requirement_id: str, new_status: str):
         
         update_query = """
             UPDATE bench.client_requirements 
-            SET status = :status, 
-                updated_date = GETDATE()
+            SET status = :status
             WHERE requirement_id = :req_id
         """
         execute_query(update_query, {"status": new_status, "req_id": requirement_id})

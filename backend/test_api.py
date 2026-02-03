@@ -101,11 +101,17 @@ def test_store_shortlist(requirement_id: str):
         print(f"Response:\n{json.dumps(data, indent=2)}")
         if response.status_code == 200:
             match_count = data.get("count", 0)
+            stored_shortlist_id = data.get("stored_shortlist_id")
+            stored_candidates = data.get("stored_candidates", [])
             print(f"✓ Search completed - Found {match_count} candidates")
+            print(f"✓ Stored shortlist ID: {stored_shortlist_id}")
+            print(f"✓ Stored candidates in DB: {len(stored_candidates)}")
+            return stored_shortlist_id
         else:
-            print(f"✗ Search failed")
+            print("✗ Search failed")
     except Exception as e:
         print(f"✗ Error: {e}")
+    return None
 
 
 def test_get_shortlist(requirement_id: str):
@@ -167,16 +173,12 @@ if __name__ == "__main__":
     if req_id:
         test_get_requirements()
         test_get_requirement_by_id(req_id)
-        test_store_shortlist(req_id)  # POST /search - runs semantic search
+        stored_shortlist_id = test_store_shortlist(req_id)  # POST /search - runs semantic search
         emp_id = test_get_shortlist(req_id)  # GET /shortlist - returns first employee_id
         test_get_breakdown(req_id, emp_id)  # GET /breakdown
         
         print("\n" + "="*60)
         print("✓ ALL TESTS COMPLETED")
         print("="*60)
-        print("\nJSON files created in ./storage/ directory:")
-        print("  - storage/requirements.json")
-        print("  - storage/shortlist.json")
-        print("  - storage/breakdown.json")
     else:
         print("\n✗ Failed to create requirement. Make sure server is running.")
