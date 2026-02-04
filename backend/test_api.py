@@ -18,13 +18,13 @@ def test_create_requirement():
     print("="*60)
     
     payload = {
-        "client_name": "TechVision Solutions",
-        "role_title": "Senior Cloud Architect",
-        "required_skills": ["Python", "AWS", "Kubernetes", "Terraform"],
-        "minimum_experience": 7,
+        "client_name": "Google",
+        "role_title": "Marketing Manager",
+        "required_skills": ["Project Management"],
+        "minimum_experience": 5,
         "mandatory_certifications": ["AWS Certified Solutions Architect", "Certified Kubernetes Administrator"],
         "availability_date": "2026-03-15",
-        "requirement_summary": "Building enterprise-grade cloud infrastructure. Need architect with 7+ years AWS experience and Kubernetes expertise for 12-month engagement."
+        "requirement_summary": "required efficient project management for cloud initiatives. Need manager with 5+ years experience ."
     }
     
     try:
@@ -81,15 +81,16 @@ def test_store_shortlist(requirement_id: str):
     print("="*60)
     
     # This payload matches the SearchRequest model in main.py
+    # Searching for Marketing Manager with Project Management skill
     payload = {
         "requirement_id": requirement_id,
-        "client_name": "TechVision Solutions",
-        "role_title": "Senior Cloud Architect",
-        "required_skills": ["Python", "AWS", "Kubernetes", "Terraform"],
-        "min_experience": 7,
-        "required_certs": ["AWS Certified Solutions Architect", "Certified Kubernetes Administrator"],
+        "client_name": "Google",
+        "role_title": "Marketing Manager",
+        "required_skills": ["Project Management"],
+        "min_experience": 5,
+        "required_certs": ["Google Analytics Individual Qualification"],
         "availability_date": "2026-03-15",
-        "requirement_summary": "Building enterprise-grade cloud infrastructure. Need architect with 7+ years AWS experience and Kubernetes expertise for 12-month engagement.",
+        "requirement_summary": "Need efficient project management for marketing initiatives. Require manager with 5+ years experience in digital marketing and project management.",
         "top_n": 5,
         "allow_partial": True
     }

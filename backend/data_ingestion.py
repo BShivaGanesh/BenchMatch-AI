@@ -525,8 +525,9 @@ def search_employees(
         else:
             status = status_series
 
-        # BENCH RULE: Only include "inactive" (adjust as needed)
-        if status != "inactive":
+        # BENCH RULE: Only include "active" bench employees (available on bench)
+        # "active" = on bench and available for assignment
+        if status != "active":
             dropped_not_eligible += 1
             continue
 
@@ -587,6 +588,30 @@ def search_employees(
             if debug:
                 logger.info(
                     f"  🔧 {emp_id}: Found {num_matches} matching skills (×{skill_boost:.1f})"
+                )
+
+        # SIGNAL 5: EXPERIENCE LEVEL MATCHES REQUIREMENT
+        candidate_exp = float(emp_row.get("experience_years", 0))
+        if min_experience > 0 and candidate_exp >= min_experience:
+            exp_boost = 1.5 if candidate_exp >= min_experience else 1.0
+            boost_factor *= exp_boost
+            if debug:
+                logger.info(
+                    f"  📈 {emp_id}: Experience {candidate_exp} yrs meets {min_experience}+ requirement (×{exp_boost})"
+                )
+
+        # SIGNAL 6: CERTIFICATION MATCHES REQUIREMENT
+        emp_certs = certs_df[certs_df["employee_id"] == emp_id]["certificate_name"].tolist()
+        emp_certs_lower = [c.lower() for c in emp_certs]
+        matching_certs = [
+            c for c in emp_certs_lower if any(req.lower() in c for req in required_certs)
+        ]
+        if matching_certs and required_certs:
+            cert_boost = min(1.0 + (len(matching_certs) * 0.25), 1.5)  # Cap at 1.5x
+            boost_factor *= cert_boost
+            if debug:
+                logger.info(
+                    f"  🏆 {emp_id}: Found {len(matching_certs)} matching certifications (×{cert_boost:.1f})"
                 )
 
         # Compute final score: embedding provides relevance, boosts apply field importance
@@ -655,8 +680,15 @@ def search_employees(
         else:
             exp_match_pct = 80  # Default if no exp specified
 
-        # Availability (bench = 100%, else lower)
-        avail_pct = 100 if match["bench_status"] == "inactive" else 60
+        # Availability scoring: Active bench employees are PRIMARY TARGET (higher score)
+        # "active" = on bench and available = 95%
+        # "inactive" = bench but not immediately available = 70%
+        if match["bench_status"] == "active":
+            avail_pct = 95  # Active bench employees are readily available
+        elif match["bench_status"] == "inactive":
+            avail_pct = 70  # Inactive bench employees may need more time
+        else:
+            avail_pct = 0  # Non-bench employees shouldn't reach here
 
         # WEIGHTED SCORE (60% skills, 20% exp, 10% certs, 10% avail)
         weights = {
