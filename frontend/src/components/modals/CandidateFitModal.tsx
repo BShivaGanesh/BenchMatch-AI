@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import Button from "../ui/Button";
+import type { Candidate } from "../../types";
 
 type BenchStatus = "Bench" | "Partial" | "Not Bench";
 
@@ -61,8 +62,12 @@ interface CandidateFitModalProps {
   open: boolean;
   onClose: () => void;
   onSelect?: () => void;
-  candidate?: CandidateFitData;
+  candidate: Candidate; 
+  breakdown?: any; 
+  loading?: boolean;
+  isAlreadySelected?: boolean;
 }
+
 
 // Mock data for a high-fit candidate
 const mockCandidate: CandidateFitData = {
@@ -159,27 +164,54 @@ const CandidateFitModal: React.FC<CandidateFitModalProps> = ({
   open,
   onClose,
   onSelect,
-  candidate = mockCandidate,
+  candidate,
+  breakdown,
+  loading = false,
+  isAlreadySelected = false,
 }) => {
+  if (!open || !candidate) return null;
   const [activeTab, setActiveTab] = useState<"summary" | "skills" | "certs">(
     "summary"
   );
+   const fullCandidate = {
+    ...candidate,
+    score: {
+      overallFit: candidate.overallFitScore,
+      rank: candidate.rank,
+      skillMatch: candidate.skillMatchScore,
+      experience: breakdown?.experience_score ?? 80,
+      availability: breakdown?.availability_score ?? 80,
+      certifications: breakdown?.certifications_score ?? 80,
+    },
+    skills: breakdown?.skill_match_details ?? [],
+    experience: {
+      requiredYears: 5, // from requirement.minimumExperience
+      candidateYears: breakdown?.experience_years ?? 0,
+      projects: [], // enhance later
+    },
+    certifications: breakdown?.certifications ?? [],
+    availability: {
+      benchStatus: candidate.benchStatus as BenchStatus,
+      sinceDate: breakdown?.bench_since ?? "2025-11-28",
+    },
+  };
+
 
   if (!open) return null;
 
-  const { score } = candidate;
+  const { score } = fullCandidate;
 
   const benchBadgeClasses =
-    candidate.availability.benchStatus === "Bench"
+    fullCandidate.availability.benchStatus === "Bench"
       ? "bg-[color:var(--evergreen-green)]/15 text-[color:var(--evergreen-green)]"
-      : candidate.availability.benchStatus === "Partial"
+      : fullCandidate.availability.benchStatus === "Partial"
       ? "bg-[color:var(--highlight-yellow)]/15 text-[color:var(--highlight-yellow)]"
       : "bg-slate-100 text-slate-600";
 
   const benchLabel =
-    candidate.availability.benchStatus === "Bench"
+    fullCandidate.availability.benchStatus === "Bench"
       ? "Immediately available"
-      : candidate.availability.benchStatus === "Partial"
+      : fullCandidate.availability.benchStatus === "Partial"
       ? "Partially allocated"
       : "Not currently on bench";
 
@@ -216,13 +248,23 @@ const CandidateFitModal: React.FC<CandidateFitModalProps> = ({
               </div>
             </div>
 
+         {!isAlreadySelected && (
             <Button
               variant="primary"
               className="hidden md:inline-flex"
               onClick={onSelect}
+              disabled={loading} 
             >
-              Select Candidate
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-r-white" />
+                  Selecting...
+                </span>
+              ) : (
+                'Select Candidate'
+              )}
             </Button>
+          )}
 
             <button
               onClick={onClose}
@@ -241,7 +283,7 @@ const CandidateFitModal: React.FC<CandidateFitModalProps> = ({
               <button
                 onClick={() => setActiveTab("summary")}
                 className={`rounded-full px-3 py-1 font-medium ${
-                  activeTab === "summary"
+                 activeTab === "summary"
                     ? "bg-[color:var(--ig-blue)] text-white"
                     : "text-slate-600 hover:bg-slate-200"
                 }`}
@@ -270,26 +312,36 @@ const CandidateFitModal: React.FC<CandidateFitModalProps> = ({
               </button>
             </div>
 
+           {!isAlreadySelected && (
             <Button
               variant="primary"
               className="md:hidden"
               onClick={onSelect}
+              disabled={loading} // ADD loading state
             >
-              Select
+              {loading ? (
+                <span className="flex items-center gap-1.5 text-xs">
+                  <div className="h-3 w-3 animate-spin rounded-full border-2 border-current/30 border-r-current" />
+                  Selecting...
+                </span>
+              ) : (
+                'Select'
+              )}
             </Button>
+          )}
           </div>
 
           {/* Scrollable content */}
           <div className="flex-1 overflow-y-auto min-h-0 px-4 py-4 md:px-6 md:py-5">
             {activeTab === "summary" && (
-              <SummaryTab candidate={candidate} />
+              <SummaryTab candidate={fullCandidate} />
             )}
             {activeTab === "skills" && (
-              <SkillsTab candidate={candidate} />
+              <SkillsTab candidate={fullCandidate} />
             )}
             {activeTab === "certs" && (
               <CertsTab
-                candidate={candidate}
+                candidate={fullCandidate}
                 benchBadgeClasses={benchBadgeClasses}
                 benchLabel={benchLabel}
               />

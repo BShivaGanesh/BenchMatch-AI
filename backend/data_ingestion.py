@@ -204,7 +204,7 @@ def get_embedding(text):
         result = embed.text(
             texts=[text],
             model=EMBED_MODEL,
-            task_type="search_query"  # Nomic requires task_type for v1.5
+            task_type="search_query",  # Nomic requires task_type for v1.5
         )
         return result["embeddings"][0]
     except Exception as e:

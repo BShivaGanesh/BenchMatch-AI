@@ -19,7 +19,11 @@ app = FastAPI(title="BenchMatch AI API", version="1.0.0")
 # ========================================
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173", "http://localhost:5174"],
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://localhost:5174",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -28,6 +32,7 @@ app.add_middleware(
 # ========================================
 # AZURE SQL HELPER FUNCTIONS
 # ========================================
+
 
 def execute_query(query: str, params: Dict[str, Any] = None):
     """Execute INSERT/UPDATE/DELETE query on Azure SQL."""
@@ -60,6 +65,7 @@ def fetch_query(query: str, params: Dict[str, Any] = None):
 # PYDANTIC MODELS
 # ========================================
 
+
 class SearchRequest(BaseModel):
     requirement_id: Optional[str] = None  # Add requirement_id for storing results
     client_name: Optional[str] = ""
@@ -75,6 +81,7 @@ class SearchRequest(BaseModel):
 
 class CreateRequirementRequest(BaseModel):
     """Request body for creating a new requirement."""
+
     client_name: str
     role_title: str
     required_skills: List[str]
@@ -86,6 +93,7 @@ class CreateRequirementRequest(BaseModel):
 
 class SelectCandidateRequest(BaseModel):
     """Request body for selecting a candidate."""
+
     hired_by: Optional[str] = None
 
 
@@ -103,22 +111,23 @@ def hello_world():
 # POST ENDPOINTS - CREATE/STORE DATA
 # ========================================
 
+
 @app.post("/requirements")
 def create_requirement(request: CreateRequirementRequest):
     """
     POST /requirements
     Create a new client project requirement and store in Azure SQL.
-    
+
     Stores to: bench.client_requirements
     """
     try:
         # Generate unique requirement ID
         requirement_id = f"REQ-{str(uuid.uuid4())[:8].upper()}"
-        
+
         # Convert lists to comma-separated strings
         required_skills_str = ",".join(request.required_skills)
         mandatory_certs_str = ",".join(request.mandatory_certifications)
-        
+
         # Insert into client_requirements table
         insert_query = """
             INSERT INTO bench.client_requirements (
@@ -130,20 +139,23 @@ def create_requirement(request: CreateRequirementRequest):
                 GETDATE(), :min_exp, :certs, :avail_date, :summary, :skills
             )
         """
-        
-        execute_query(insert_query, {
-            "req_id": requirement_id,
-            "client_name": request.client_name,
-            "role_title": request.role_title,
-            "min_exp": request.minimum_experience,
-            "certs": mandatory_certs_str,
-            "avail_date": request.availability_date or None,
-            "summary": request.requirement_summary,
-            "skills": required_skills_str
-        })
-        
+
+        execute_query(
+            insert_query,
+            {
+                "req_id": requirement_id,
+                "client_name": request.client_name,
+                "role_title": request.role_title,
+                "min_exp": request.minimum_experience,
+                "certs": mandatory_certs_str,
+                "avail_date": request.availability_date or None,
+                "summary": request.requirement_summary,
+                "skills": required_skills_str,
+            },
+        )
+
         logger.info(f"✓ Created requirement {requirement_id} for {request.client_name}")
-        
+
         return {
             "status": "success",
             "requirement_id": requirement_id,
@@ -157,8 +169,8 @@ def create_requirement(request: CreateRequirementRequest):
                 "minimum_experience": request.minimum_experience,
                 "mandatory_certifications": request.mandatory_certifications,
                 "availability_date": request.availability_date,
-                "requirement_summary": request.requirement_summary
-            }
+                "requirement_summary": request.requirement_summary,
+            },
         }
     except Exception as e:
         logger.error(f"Error creating requirement: {e}")
@@ -170,7 +182,7 @@ def search(request: SearchRequest):
     """
     POST /search
     Semantic search endpoint - Stores results to Azure SQL.
-    
+
     Flow:
     1. Run embedding search to find matching candidates
     2. Store shortlist in bench.candidate_shortlists
@@ -188,7 +200,7 @@ def search(request: SearchRequest):
             top_n=request.top_n,
             allow_partial=request.allow_partial,
         )
-        
+
         # If requirement_id provided, store results to database
         stored_shortlist_id = None
         stored_candidates = []
@@ -229,11 +241,14 @@ def search(request: SearchRequest):
                 """
 
                 with engine.begin() as conn:
-                    conn.execute(text(insert_shortlist), {
-                        "sl_id": shortlist_id,
-                        "req_id": request.requirement_id,
-                        "count": len(results)
-                    })
+                    conn.execute(
+                        text(insert_shortlist),
+                        {
+                            "sl_id": shortlist_id,
+                            "req_id": request.requirement_id,
+                            "count": len(results),
+                        },
+                    )
 
                     for candidate in results:
                         item_id = f"CSI-{str(uuid.uuid4())[:8].upper()}"
@@ -245,37 +260,56 @@ def search(request: SearchRequest):
                             for s in skill_details
                             if int(s.get("confidence", 0)) > 0
                         ]
-                        strengths_summary = ", ".join(matched_skills)[:450] if matched_skills else "No matching skills"
+                        strengths_summary = (
+                            ", ".join(matched_skills)[:450]
+                            if matched_skills
+                            else "No matching skills"
+                        )
 
                         unmatched_skills = [
                             str(s.get("required_skill", ""))
                             for s in skill_details
                             if int(s.get("confidence", 0)) == 0
                         ]
-                        gaps_summary = ", ".join(unmatched_skills)[:450] if unmatched_skills else ""
+                        gaps_summary = (
+                            ", ".join(unmatched_skills)[:450]
+                            if unmatched_skills
+                            else ""
+                        )
 
-                        llm_summary = str(candidate.get("llm_summary", "No summary available"))
+                        llm_summary = str(
+                            candidate.get("llm_summary", "No summary available")
+                        )
                         reason = llm_summary[:200]
 
-                        conn.execute(text(insert_item), {
-                            "item_id": item_id,
-                            "sl_id": shortlist_id,
-                            "emp_id": str(candidate["employee_id"]),
-                            "rank": int(candidate["rank"]),
-                            "overall_fit": int(candidate["overall_fit_score"]),
-                            "skill_match": int(breakdown.get("skills_match", 0)),
-                            "exp_match": int(breakdown.get("experience_match", 0)),
-                            "avail_match": int(breakdown.get("availability_match", 0)),
-                            "cert_match": int(breakdown.get("certifications_match", 0)),
-                            "bench_status": str(candidate["bench_status"]),
-                            "reason": reason,
-                            "strengths": strengths_summary,
-                            "gaps": gaps_summary,
-                            "llm_summary": llm_summary,
-                            "llm_json": json.dumps(breakdown)
-                        })
+                        conn.execute(
+                            text(insert_item),
+                            {
+                                "item_id": item_id,
+                                "sl_id": shortlist_id,
+                                "emp_id": str(candidate["employee_id"]),
+                                "rank": int(candidate["rank"]),
+                                "overall_fit": int(candidate["overall_fit_score"]),
+                                "skill_match": int(breakdown.get("skills_match", 0)),
+                                "exp_match": int(breakdown.get("experience_match", 0)),
+                                "avail_match": int(
+                                    breakdown.get("availability_match", 0)
+                                ),
+                                "cert_match": int(
+                                    breakdown.get("certifications_match", 0)
+                                ),
+                                "bench_status": str(candidate["bench_status"]),
+                                "reason": reason,
+                                "strengths": strengths_summary,
+                                "gaps": gaps_summary,
+                                "llm_summary": llm_summary,
+                                "llm_json": json.dumps(breakdown),
+                            },
+                        )
 
-                    conn.execute(text(update_status), {"req_id": request.requirement_id})
+                    conn.execute(
+                        text(update_status), {"req_id": request.requirement_id}
+                    )
 
                 stored_shortlist_id = shortlist_id
 
@@ -292,15 +326,17 @@ def search(request: SearchRequest):
                     WHERE csi.shortlist_id = :sl_id
                     ORDER BY csi.rank
                     """,
-                    {"sl_id": shortlist_id}
+                    {"sl_id": shortlist_id},
                 )
 
-                logger.info(f"✓ Stored {len(results)} candidates to shortlist {shortlist_id}")
+                logger.info(
+                    f"✓ Stored {len(results)} candidates to shortlist {shortlist_id}"
+                )
 
             except Exception as e:
                 logger.error(f"Error storing shortlist: {e}")
                 raise HTTPException(status_code=500, detail=str(e))
-        
+
         return {
             "status": "success",
             "requirement_id": request.requirement_id,
@@ -308,7 +344,9 @@ def search(request: SearchRequest):
             "role_title": request.role_title,
             "matches": results,
             "count": len(results),
-            "requirement_status": "In Progress" if request.requirement_id else "Not Stored",
+            "requirement_status": (
+                "In Progress" if request.requirement_id else "Not Stored"
+            ),
             "stored_shortlist_id": stored_shortlist_id,
             "stored_candidates": stored_candidates,
         }
@@ -320,6 +358,7 @@ def search(request: SearchRequest):
 # ========================================
 # GET ENDPOINTS - RETRIEVE DATA
 # ========================================
+
 
 @app.get("/requirements")
 def get_all_requirements(status: Optional[str] = None):
@@ -339,33 +378,29 @@ def get_all_requirements(status: Optional[str] = None):
             LEFT JOIN bench.candidate_shortlists cs ON cr.requirement_id = cs.requirement_id
             LEFT JOIN bench.candidate_shortlist_items csi ON cs.shortlist_id = csi.shortlist_id
         """
-        
+
         params = {}
         if status:
             query += " WHERE cr.status = :status"
             params["status"] = status
-        
+
         query += """
             GROUP BY cr.requirement_id, cr.client_name, cr.role_title, cr.status,
                      cr.submitted_date, cr.min_experience, cr.mandatory_certs,
                      cr.availability_date, cr.summary, cr.required_skills
             ORDER BY cr.submitted_date DESC
         """
-        
+
         requirements = fetch_query(query, params)
-        
+
         # Convert required_skills and mandatory_certs to lists
         for req in requirements:
             if req.get("required_skills"):
                 req["required_skills"] = req["required_skills"].split(",")
             if req.get("mandatory_certs"):
                 req["mandatory_certifications"] = req["mandatory_certs"].split(",")
-        
-        return {
-            "status": "success",
-            "count": len(requirements),
-            "data": requirements
-        }
+
+        return {"status": "success", "count": len(requirements), "data": requirements}
     except Exception as e:
         logger.error(f"Error retrieving requirements: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -382,24 +417,25 @@ def get_requirement(requirement_id: str):
             SELECT * FROM bench.client_requirements
             WHERE requirement_id = :req_id
         """
-        
+
         results = fetch_query(query, {"req_id": requirement_id})
-        
+
         if not results:
-            raise HTTPException(status_code=404, detail=f"Requirement {requirement_id} not found")
-        
+            raise HTTPException(
+                status_code=404, detail=f"Requirement {requirement_id} not found"
+            )
+
         requirement = results[0]
-        
+
         # Convert strings to lists
         if requirement.get("required_skills"):
             requirement["required_skills"] = requirement["required_skills"].split(",")
         if requirement.get("mandatory_certs"):
-            requirement["mandatory_certifications"] = requirement["mandatory_certs"].split(",")
-        
-        return {
-            "status": "success",
-            "data": requirement
-        }
+            requirement["mandatory_certifications"] = requirement[
+                "mandatory_certs"
+            ].split(",")
+
+        return {"status": "success", "data": requirement}
     except HTTPException:
         raise
     except Exception as e:
@@ -431,12 +467,15 @@ def get_shortlist(requirement_id: str):
             WHERE cs.requirement_id = :req_id
             ORDER BY csi.rank
         """
-        
+
         candidates = fetch_query(query, {"req_id": requirement_id})
-        
+
         if not candidates:
-            raise HTTPException(status_code=404, detail=f"Shortlist for requirement {requirement_id} not found")
-        
+            raise HTTPException(
+                status_code=404,
+                detail=f"Shortlist for requirement {requirement_id} not found",
+            )
+
         # Parse JSON fields
         for candidate in candidates:
             if candidate.get("llm_breakdown_json"):
@@ -446,18 +485,20 @@ def get_shortlist(requirement_id: str):
                     candidate["breakdown"] = {}
             if candidate.get("strengths"):
                 try:
-                    candidate["skill_match_details"] = json.loads(candidate["strengths"])
+                    candidate["skill_match_details"] = json.loads(
+                        candidate["strengths"]
+                    )
                 except:
                     candidate["skill_match_details"] = []
-        
+
         return {
             "status": "success",
             "requirement_id": requirement_id,
             "data": {
                 "candidates": candidates,
                 "candidate_count": len(candidates),
-                "generated_at": candidates[0]["generated_at"] if candidates else None
-            }
+                "generated_at": candidates[0]["generated_at"] if candidates else None,
+            },
         }
     except HTTPException:
         raise
@@ -481,28 +522,25 @@ def get_breakdown(requirement_id: str, employee_id: str):
             JOIN bench.employees e ON csi.employee_id = e.employee_id
             WHERE cs.requirement_id = :req_id AND csi.employee_id = :emp_id
         """
-        
+
         results = fetch_query(query, {"req_id": requirement_id, "emp_id": employee_id})
-        
+
         if not results:
             raise HTTPException(
-                status_code=404, 
-                detail=f"Breakdown not found for requirement {requirement_id} and candidate {employee_id}"
+                status_code=404,
+                detail=f"Breakdown not found for requirement {requirement_id} and candidate {employee_id}",
             )
-        
+
         breakdown = results[0]
-        
+
         # Parse JSON fields
         if breakdown.get("llm_breakdown_json"):
             try:
                 breakdown["breakdown"] = json.loads(breakdown["llm_breakdown_json"])
             except:
                 breakdown["breakdown"] = {}
-        
-        return {
-            "status": "success",
-            "data": breakdown
-        }
+
+        return {"status": "success", "data": breakdown}
     except HTTPException:
         raise
     except Exception as e:
@@ -510,19 +548,43 @@ def get_breakdown(requirement_id: str, employee_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-
+@app.get("/match-history/recent")
+def get_recent_match_history(limit: int = 5):
+    """
+    GET /match-history/recent?limit=5
+    Recent Match History for dashboard (last 5 requirements)
+    """
+    try:
+        query = """
+            SELECT TOP (:limit)
+                mh.requirement_id,
+                cr.client_name,
+                cr.role_title,
+                mh.run_timestamp as date_submitted,
+                mh.status,
+                mh.top_candidate_fit as top_candidate_fit_score
+            FROM bench.match_history mh
+            JOIN bench.client_requirements cr ON mh.requirement_id = cr.requirement_id
+            ORDER BY mh.run_timestamp DESC
+        """
+        rows = fetch_query(query, {"limit": limit})
+        return {"status": "success", "data": rows}
+    except Exception as e:
+        logger.error(f"Error retrieving match history: {e}")
+        return {"status": "failed", "data": []}
 
 
 # ========================================
 # PUT ENDPOINTS - UPDATE DATA
 # ========================================
 
+
 @app.put("/candidate/{shortlist_item_id}/select")
 def select_candidate(shortlist_item_id: str, request: SelectCandidateRequest = None):
     """
     PUT /candidate/{shortlist_item_id}/select
     Mark a candidate as selected/hired for a requirement.
-    
+
     Updates:
     - candidate_shortlist_items.selected = 1
     - client_requirements.status = 'Matched'
@@ -531,56 +593,70 @@ def select_candidate(shortlist_item_id: str, request: SelectCandidateRequest = N
     """
     try:
         engine = get_engine()
-        
+
         # Use transaction for atomicity
         with engine.begin() as conn:
             # 1. Get shortlist item details
-            get_item = text("""
+            get_item = text(
+                """
                 SELECT csi.shortlist_item_id, csi.shortlist_id, csi.employee_id, 
                        csi.overall_fit_score, cs.requirement_id
                 FROM bench.candidate_shortlist_items csi
                 JOIN bench.candidate_shortlists cs ON csi.shortlist_id = cs.shortlist_id
                 WHERE csi.shortlist_item_id = :item_id
-            """)
+            """
+            )
             result = conn.execute(get_item, {"item_id": shortlist_item_id}).first()
-            
+
             if not result:
-                raise HTTPException(status_code=404, detail=f"Shortlist item {shortlist_item_id} not found")
-            
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Shortlist item {shortlist_item_id} not found",
+                )
+
             requirement_id = result[4]
             employee_id = result[2]
             fit_score = result[3]
-            
+
             # 2. Update candidate_shortlist_items - Mark as selected
-            update_item = text("""
+            update_item = text(
+                """
                 UPDATE bench.candidate_shortlist_items 
                 SET selected = 1, 
                     selected_date = GETDATE()
                 WHERE shortlist_item_id = :item_id
-            """)
+            """
+            )
             conn.execute(update_item, {"item_id": shortlist_item_id})
-            
+
             # 3. Update client_requirements status to 'Matched'
-            update_req = text("""
+            update_req = text(
+                """
                 UPDATE bench.client_requirements 
                 SET status = 'Matched'
                 WHERE requirement_id = :req_id
-            """)
+            """
+            )
             conn.execute(update_req, {"req_id": requirement_id})
-            
+
             # 4. Update bench_status - Mark employee as allocated
-            update_bench = text("""
+            update_bench = text(
+                """
                 UPDATE bench.bench_status 
                 SET status = 'allocated',
                     allocated_to_requirement_id = :req_id,
                     allocated_date = GETDATE()
                 WHERE employee_id = :emp_id
-            """)
-            conn.execute(update_bench, {"req_id": requirement_id, "emp_id": employee_id})
-            
+            """
+            )
+            conn.execute(
+                update_bench, {"req_id": requirement_id, "emp_id": employee_id}
+            )
+
             # 5. Record in match_history
             match_run_id = f"MH-{str(uuid.uuid4())[:8].upper()}"
-            insert_history = text("""
+            insert_history = text(
+                """
                 INSERT INTO bench.match_history 
                 (match_run_id, requirement_id, run_timestamp, status, 
                  top_candidate_id, top_candidate_fit, engine_version)
@@ -588,24 +664,30 @@ def select_candidate(shortlist_item_id: str, request: SelectCandidateRequest = N
                     :match_id, :req_id, GETDATE(), 'Matched',
                     :emp_id, :fit_score, '1.0'
                 )
-            """)
-            conn.execute(insert_history, {
-                "match_id": match_run_id,
-                "req_id": requirement_id, 
-                "emp_id": employee_id,
-                "fit_score": fit_score
-            })
-        
-        logger.info(f"✓ Candidate {employee_id} selected for requirement {requirement_id}")
-        
+            """
+            )
+            conn.execute(
+                insert_history,
+                {
+                    "match_id": match_run_id,
+                    "req_id": requirement_id,
+                    "emp_id": employee_id,
+                    "fit_score": fit_score,
+                },
+            )
+
+        logger.info(
+            f"✓ Candidate {employee_id} selected for requirement {requirement_id}"
+        )
+
         return {
             "status": "success",
             "message": "Candidate selected successfully",
             "requirement_id": requirement_id,
             "employee_id": employee_id,
-            "requirement_status": "Matched"
+            "requirement_status": "Matched",
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -623,24 +705,24 @@ def update_requirement_status(requirement_id: str, new_status: str):
         valid_statuses = ["Submitted", "In Progress", "Matched", "Placed"]
         if new_status not in valid_statuses:
             raise HTTPException(
-                status_code=400, 
-                detail=f"Invalid status. Must be one of: {valid_statuses}"
+                status_code=400,
+                detail=f"Invalid status. Must be one of: {valid_statuses}",
             )
-        
+
         update_query = """
             UPDATE bench.client_requirements 
             SET status = :status
             WHERE requirement_id = :req_id
         """
         execute_query(update_query, {"status": new_status, "req_id": requirement_id})
-        
+
         logger.info(f"✓ Requirement {requirement_id} status updated to {new_status}")
-        
+
         return {
             "status": "success",
             "message": f"Requirement status updated to {new_status}",
             "requirement_id": requirement_id,
-            "requirement_status": new_status
+            "requirement_status": new_status,
         }
     except HTTPException:
         raise
