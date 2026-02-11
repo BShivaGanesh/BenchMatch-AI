@@ -179,17 +179,28 @@ const CandidateFitModal: React.FC<CandidateFitModalProps> = ({
       overallFit: candidate.overallFitScore,
       rank: candidate.rank,
       skillMatch: candidate.skillMatchScore,
-      experience: breakdown?.experience_score ?? 80,
-      availability: breakdown?.availability_score ?? 80,
-      certifications: breakdown?.certifications_score ?? 80,
+      experience: breakdown?.experience_match ?? breakdown?.experience_score ?? 80,
+      availability: breakdown?.availability_match ?? breakdown?.availability_score ?? 80,
+      certifications: breakdown?.certifications_match ?? breakdown?.certifications_score ?? 80,
     },
     skills: breakdown?.skill_match_details ?? [],
     experience: {
       requiredYears: 5, // from requirement.minimumExperience
-      candidateYears: breakdown?.experience_years ?? 0,
+      candidateYears: breakdown?.experience_alignment?.candidate_years ?? breakdown?.experience_years ?? 0,
       projects: [], // enhance later
     },
-    certifications: breakdown?.certifications ?? [],
+    certifications: [
+      ...(breakdown?.certification_details?.required?.map((cert: any) => ({
+        name: cert.certificate_name,
+        required: true,
+        held: cert.status === "✓ Met",
+      })) ?? []),
+      ...(breakdown?.certification_details?.additional?.map((cert: any) => ({
+        name: cert.certificate_name,
+        required: false,
+        held: cert.status === "Held",
+      })) ?? []),
+    ],
     availability: {
       benchStatus: candidate.benchStatus as BenchStatus,
       sinceDate: breakdown?.bench_since ?? "2025-11-28",

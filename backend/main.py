@@ -483,13 +483,8 @@ def get_shortlist(requirement_id: str):
                     candidate["breakdown"] = json.loads(candidate["llm_breakdown_json"])
                 except:
                     candidate["breakdown"] = {}
-            if candidate.get("strengths"):
-                try:
-                    candidate["skill_match_details"] = json.loads(
-                        candidate["strengths"]
-                    )
-                except:
-                    candidate["skill_match_details"] = []
+            # strengths and gaps remain plain text for UI display
+            # do not attempt json.loads(strengths) - it's a comma-separated string
 
         return {
             "status": "success",

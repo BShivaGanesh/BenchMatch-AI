@@ -38,6 +38,18 @@ export interface Candidate {
   gaps: string[];
   experienceSummary: string;
   certifications: string[];
+  skill_match_details?: Array<{
+    required_skill: string;
+    candidate_evidence: string;
+    confidence: number;
+  }>;
+  // Breakdown scores
+  skills_match?: number;
+  experience_match?: number;
+  availability_match?: number;
+  certifications_match?: number;
+  certification_details?: any;
+  experience_alignment?: any;
   selected?: boolean;
 }
 

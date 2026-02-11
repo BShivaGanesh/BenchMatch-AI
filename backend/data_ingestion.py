@@ -46,6 +46,7 @@ import urllib.parse
 
 AZURE_SQL_SERVER = "ai-db-dbs.database.windows.net"
 AZURE_SQL_DATABASE = "db_bench"
+AZURE_SQL_SCHEMA = os.getenv("AZURE_SQL_SCHEMA", "bench")
 
 # For Entra ID Integrated Authentication (uses Windows/Azure credentials)
 # No browser popup, uses current user's credentials
@@ -76,35 +77,22 @@ def get_engine():
 
 
 def load_csvs():
-    try:
-        employees = pd.read_csv(DATA_DIR / "employees.csv")
-        skills = pd.read_csv(DATA_DIR / "skills.csv")
-        certs = pd.read_csv(DATA_DIR / "certifications.csv")
-        projects = pd.read_csv(DATA_DIR / "project_history.csv")
-
-        logger.info(f"Loaded {len(employees)} employees")
-        logger.info(f"Loaded {len(skills)} skill records")
-        logger.info(f"Loaded {len(certs)} certification records")
-        logger.info(f"Loaded {len(projects)} project records")
-
-        return employees, skills, certs, projects
-    except FileNotFoundError as e:
-        logger.error(f"CSV file not found: {e}")
-        raise
-    except Exception as e:
-        logger.error(f"Error loading CSVs: {e}")
-        raise
-    # def load_from_azure_sql():
     """
     Load all employee-related tables from Azure SQL.
-    Acts as a drop-in replacement for CSV loading.
+    Named load_csvs() for backward compatibility with existing code.
     """
     try:
         db_engine = get_engine()
-        employees = pd.read_sql("SELECT * FROM employees", db_engine)
-        skills = pd.read_sql("SELECT * FROM skills", db_engine)
-        certs = pd.read_sql("SELECT * FROM certifications", db_engine)
-        projects = pd.read_sql("SELECT * FROM project_history", db_engine)
+        employees = pd.read_sql(
+            f"SELECT * FROM {AZURE_SQL_SCHEMA}.employees", db_engine
+        )
+        skills = pd.read_sql(f"SELECT * FROM {AZURE_SQL_SCHEMA}.skills", db_engine)
+        certs = pd.read_sql(
+            f"SELECT * FROM {AZURE_SQL_SCHEMA}.certifications", db_engine
+        )
+        projects = pd.read_sql(
+            f"SELECT * FROM {AZURE_SQL_SCHEMA}.project_history", db_engine
+        )
 
         logger.info(f"✓ Loaded {len(employees)} employees from Azure SQL")
         logger.info(f"✓ Loaded {len(skills)} skill records from Azure SQL")
@@ -119,25 +107,20 @@ def load_csvs():
 
 
 def load_bench_status():
-    """Load bench status data and return as indexed dataframe."""
+    """
+    Load bench status from Azure SQL and index by employee_id.
+    """
     try:
-        bench_df = pd.read_csv(DATA_DIR / "bench_status.csv")
+        db_engine = get_engine()
+        bench_df = pd.read_sql(
+            f"SELECT employee_id, status FROM {AZURE_SQL_SCHEMA}.bench_status",
+            db_engine,
+        )
         return bench_df.set_index("employee_id")
+
     except Exception as e:
-        logger.error(f"Error loading bench_status.csv: {e}")
+        logger.error(f"Error loading bench status from Azure SQL: {e}")
         raise
-
-
-# def load_bench_status():
-#     """
-#     Load bench status from Azure SQL and index by employee_id.
-#     """
-#     try:
-#         db_engine = get_engine()
-#         bench_df = pd.read_sql(
-#             "SELECT employee_id, status FROM bench_status",
-#             db_engine
-#         )
 #         return bench_df.set_index("employee_id")
 
 #     except Exception as e:
@@ -326,37 +309,121 @@ def ingest():
     }
 
 
-def calculate_skill_matches(required_skills, emp_skills_df, emp_id):
-    """Compare required skills with candidate's actual skills."""
+def calculate_skill_matches(required_skills, emp_skills_df, emp_id, emp_primary_skill=""):
+    """Compare required skills with candidate's actual skills using fuzzy/semantic matching.
+    
+    Args:
+        required_skills: List of required skills
+        emp_skills_df: DataFrame with all employee skills
+        emp_id: Employee ID
+        emp_primary_skill: Employee's primary skill from employees.csv (fallback)
+    """
+
+    # Skill synonym/relationship mapping for better matching
+    skill_relationships = {
+        "figma": ["ui/ux design", "ui design", "ux design", "design"],
+        "illustrator": ["ui/ux design", "ui design", "design", "graphic design"],
+        "photoshop": ["ui/ux design", "design", "graphic design"],
+        "sketch": ["ui/ux design", "ui design", "ux design"],
+        "react": ["javascript", "react", "frontend"],
+        "node.js": ["javascript", "node", "backend"],
+        "nodejs": ["javascript", "node", "backend"],
+        "aws": ["cloud computing", "cloud", "devops"],
+        "azure": ["cloud computing", "cloud", "devops"],
+        "gcp": ["cloud computing", "cloud", "devops"],
+        "mongodb": ["sql", "database", "data"],
+        "postgresql": ["sql", "database", "data"],
+        "mysql": ["sql", "database", "data"],
+    }
+
+    # Auto-detect the skills column name to be resilient to schema differences
+    candidate_cols = ["skill_name", "Skill_Name", "skillName", "skills", "skill"]
+    skill_col = next((c for c in candidate_cols if c in emp_skills_df.columns), None)
+
+    if not skill_col:
+        logger.error(
+            f"No skill column found in emp_skills_df. Columns: {emp_skills_df.columns.tolist()}"
+        )
+        return [], 0
+
     emp_skills = emp_skills_df[emp_skills_df["employee_id"] == emp_id]
 
     skill_details = []
     matched_count = 0
 
     for req_skill in required_skills:
-        # Find matching skills in employee's skillset
+        req_lower = req_skill.lower().strip()
+        
+        # First try exact/substring match
         matches = emp_skills[
-            emp_skills["skill_name"].str.lower().str.contains(req_skill, na=False)
+            emp_skills[skill_col]
+            .astype(str)
+            .str.lower()
+            .str.contains(req_lower, na=False, regex=False)
         ]
 
         if not matches.empty:
+            # Exact match found
             best_match = matches.iloc[0]
             skill_details.append(
                 {
                     "required_skill": req_skill.capitalize(),
-                    "candidate_evidence": f"{best_match['skill_name']} ({best_match.get('years_experience', 0)} yrs)",
-                    "confidence": 95,  # High confidence for exact match
+                    "candidate_evidence": f"{best_match[skill_col]} ({best_match.get('years_experience', 0)} yrs)",
+                    "confidence": 95,  # high confidence for exact matches
                 }
             )
             matched_count += 1
         else:
-            skill_details.append(
-                {
-                    "required_skill": req_skill.capitalize(),
-                    "candidate_evidence": "Not found",
-                    "confidence": 0,
-                }
-            )
+            # Try semantic/related skill matching
+            related_skills = skill_relationships.get(req_lower, [])
+            semantic_match = None
+            
+            for related in related_skills:
+                related_matches = emp_skills[
+                    emp_skills[skill_col]
+                    .astype(str)
+                    .str.lower()
+                    .str.contains(related, na=False, regex=False)
+                ]
+                if not related_matches.empty:
+                    semantic_match = related_matches.iloc[0]
+                    break
+            
+            if semantic_match is not None:
+                # Related skill found
+                skill_details.append(
+                    {
+                        "required_skill": req_skill.capitalize(),
+                        "candidate_evidence": f"{semantic_match[skill_col]} ({semantic_match.get('years_experience', 0)} yrs) - related skill",
+                        "confidence": 70,  # lower confidence for related matches
+                    }
+                )
+                matched_count += 0.7  # Partial credit for related skills
+            else:
+                # Last resort: Check primary_skill from employees.csv
+                primary_match = False
+                if emp_primary_skill:
+                    primary_lower = str(emp_primary_skill).lower()
+                    if req_lower in primary_lower or primary_lower in req_lower:
+                        skill_details.append(
+                            {
+                                "required_skill": req_skill.capitalize(),
+                                "candidate_evidence": f"{emp_primary_skill} (primary skill)",
+                                "confidence": 90,  # high confidence for primary skill match
+                            }
+                        )
+                        matched_count += 1
+                        primary_match = True
+                
+                if not primary_match:
+                    # No match found anywhere
+                    skill_details.append(
+                        {
+                            "required_skill": req_skill.capitalize(),
+                            "candidate_evidence": "Not found",
+                            "confidence": 0,
+                        }
+                    )
 
     match_percentage = (
         (matched_count / len(required_skills) * 100) if required_skills else 0
@@ -629,6 +696,13 @@ def search_employees(
             }
         )
 
+    # Log filtering summary for debugging
+    logger.info(f"📋 Candidate filtering summary:")
+    logger.info(f"   Retrieved from embeddings: {len(results['ids'][0])}")
+    logger.info(f"   Passed bench filter (active): {len(candidates)}")
+    logger.info(f"   Dropped (not active): {dropped_not_eligible}")
+    logger.info(f"   Dropped (missing data): {dropped_missing}")
+
     # ---------------------------
     # RE-RANK BY FINAL SCORE
     # ---------------------------
@@ -638,9 +712,9 @@ def search_employees(
     # ---------------------------
     # LLM ENRICHMENT WITH DETAILED BREAKDOWN
     # ---------------------------
-    # Use gemma3:4b (faster) or llama3 with increased timeout
+    # Use the proven model that previously produced good recruiter-style summaries
     try:
-        llm = Ollama(model="gemma3:4b", request_timeout=120.0)
+        llm = Ollama(model="llama3", request_timeout=120.0)
     except Exception as e:
         logger.warning(f"Failed to initialize Ollama: {e}")
         llm = None
@@ -664,7 +738,7 @@ def search_employees(
 
         # CALCULATE REAL BREAKDOWN
         skill_details, skills_match_pct = calculate_skill_matches(
-            requirements["skills"], skills_df, emp_id
+            requirements["skills"], skills_df, emp_id, emp_row.get("primary_skill", "")
         )
 
         cert_details, certs_match_pct = calculate_cert_matches(
@@ -762,8 +836,9 @@ Focus on facts. Be concise."""
                 "name": str(emp_row.get("name", f"Employee {emp_id}")),
                 "email": str(emp_row.get("email", "")),
                 "role": str(match["role"]),
-                "bench_status": str(match["bench_status"]),
+                "bench_status": "Bench" if match["bench_status"] == "active" else match["bench_status"],
                 "overall_fit_score": int(overall_score),
+                "skill_match_score": int(skills_match_pct),
                 # Breakdown scores
                 "breakdown": {
                     "skills_match": int(skills_match_pct),
