@@ -63,8 +63,7 @@ interface CandidateFitModalProps {
   open: boolean;
   onClose: () => void;
   onSelect?: () => void;
-  candidate: Candidate;
-  breakdown?: any;
+  candidate: CandidateFitData | null;
   loading?: boolean;
   isAlreadySelected?: boolean;
 }
@@ -165,7 +164,6 @@ const CandidateFitModal: React.FC<CandidateFitModalProps> = ({
   onClose,
   onSelect,
   candidate,
-  breakdown,
   loading = false,
   isAlreadySelected = false,
 }) => {
@@ -173,28 +171,10 @@ const CandidateFitModal: React.FC<CandidateFitModalProps> = ({
   const [activeTab, setActiveTab] = useState<"summary" | "skills" | "certs">(
     "summary",
   );
-  const fullCandidate = {
-    ...candidate,
-    score: {
-      overallFit: candidate.overallFitScore,
-      rank: candidate.rank,
-      skillMatch: candidate.skillMatchScore,
-      experience: breakdown?.experience_score ?? 80,
-      availability: breakdown?.availability_score ?? 80,
-      certifications: breakdown?.certifications_score ?? 80,
-    },
-    skills: breakdown?.skill_match_details ?? [],
-    experience: {
-      requiredYears: 5, // from requirement.minimumExperience
-      candidateYears: breakdown?.experience_years ?? 0,
-      projects: [], // enhance later
-    },
-    certifications: breakdown?.certifications ?? [],
-    availability: {
-      benchStatus: candidate.benchStatus as BenchStatus,
-      sinceDate: breakdown?.bench_since ?? "2025-11-28",
-    },
-  };
+  
+  // Use candidate directly - it's already properly transformed by toFitData
+  const fullCandidate: CandidateFitData = candidate;
+
 
   if (!open) return null;
 
@@ -575,6 +555,7 @@ const SkillsTab: React.FC<TabProps> = ({ candidate }) => {
           </div>
         </div>
 
+        {experience.projects.length > 0 && (
         <div className="space-y-2 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
           <h3 className="text-[11px] font-semibold uppercase tracking-wide text-slate-700">
             Relevant Project History
@@ -601,6 +582,7 @@ const SkillsTab: React.FC<TabProps> = ({ candidate }) => {
             ))}
           </div>
         </div>
+        )}
       </section>
     </div>
   );
