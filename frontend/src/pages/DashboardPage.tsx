@@ -5,62 +5,28 @@ import KpiCard from "../components/ui/KpiCard";
 import type { KpiCardProps } from "../components/ui/KpiCard";
 import Table from "../components/ui/Table";
 import type { TableColumn } from "../components/ui/Table";
-import ProgressBar from "../components/ui/ProgressBar";
 import { Users, Activity, Zap, Clock, Search, Filter } from "lucide-react";
 import BenchSizeTrendChart from "../components/charts/BenchSizeTrendChart";
 
-const kpiMetrics: KpiCardProps[] = [
-  {
-    title: "Total Employees on Bench",
-    value: 42,
-    change: -10.5,
-    icon: Users,
-    color: "text-[#00283c]",
-    bgColor: "bg-blue-50",
-    description: "Currently available for deployment",
-    target: 30,
-    period: "Last 7 days",
-  },
-  {
-    title: "Avg. Bench Time (Days)",
-    value: 18,
-    change: -11.3,
-    icon: Clock,
-    color: "text-[#00D6F2]",
-    bgColor: "bg-cyan-50",
-    description: "Average days on bench across employees",
-    target: 14,
-    period: "Rolling 30 days",
-  },
-  {
-    title: "Total Placements (Last 30 Days)",
-    value: 27,
-    change: 28.6,
-    icon: Activity,
-    color: "text-[#56e13b]",
-    bgColor: "bg-emerald-50",
-    description: "Bench to client project conversions",
-    target: 40,
-    period: "Last 30 days",
-  },
-  {
-    title: "Highest Demand Skill",
-    value: "React + Node",
-    change: 0,
-    icon: Zap,
-    color: "text-[#FFD700]",
-    bgColor: "bg-yellow-50",
-    description: "Most requested in active client requirements",
-    period: "Current month",
-  },
-];
+// Initial KPI state (will be replaced with real data)
+const initialKpis = {
+  total_bench_employees: 0,
+  avg_bench_days: 0,
+  placements_last_30_days: 0,
+  highest_demand_skill: "Loading...",
+};
 
-const benchTrend: number[] = [56, 52, 49, 47, 45, 40, 42];
+const initialBenchTrend = {
+  trend: [56, 52, 49, 47, 45, 40, 42],
+  labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+  current: 42,
+};
 
 export const DashboardPage: React.FC = () => {
   const [requirements, setRequirements] = useState<any[]>([]);
-  const [matchHistory, setMatchHistory] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [kpiData, setKpiData] = useState(initialKpis);
+  const [benchTrendData, setBenchTrendData] = useState(initialBenchTrend);
   const [statusFilter, setStatusFilter] = useState<string>("All");
   const [searchRole, setSearchRole] = useState("");
   const [sortBy, setSortBy] = useState<"date" | "candidates">("date");
@@ -70,11 +36,35 @@ export const DashboardPage: React.FC = () => {
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
-      await Promise.allSettled([fetchRequirements(), fetchMatchHistory()]);
+      await Promise.allSettled([fetchKpis(), fetchBenchTrend(), fetchRequirements()]);
       setIsLoading(false);
     };
     loadData();
   }, []);
+
+  const fetchKpis = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/analytics/kpis`);
+      const json = await res.json();
+      if (json.status === "success" && json.data) {
+        setKpiData(json.data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch KPI analytics:", error);
+    }
+  };
+
+  const fetchBenchTrend = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/analytics/bench-trend`);
+      const json = await res.json();
+      if (json.status === "success" && json.data) {
+        setBenchTrendData(json.data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch bench trend:", error);
+    }
+  };
 
   const fetchRequirements = async () => {
     try {
@@ -86,57 +76,50 @@ export const DashboardPage: React.FC = () => {
     }
   };
 
-  const fetchMatchHistory = async () => {
-    try {
-      const res = await fetch(`${API_BASE}/match-history/recent?limit=5`);
-      const json = await res.json();
-      setMatchHistory(json.data || []);
-    } catch (error) {
-      console.error("Failed to fetch match history:", error);
-    }
-  };
-
-  const matchColumns: TableColumn<any>[] = [
+  // Build KPI metrics from fetched data
+  const kpiMetrics: KpiCardProps[] = [
     {
-      key: "requirement_id",
-      header: "Requirement",
-      render: (row: any) => (
-        <div className="flex flex-col">
-          <span className="text-xs font-medium text-slate-900">
-            {row.requirement_id}
-          </span>
-          <span className="text-[11px] text-slate-500">
-            Submitted {row.date_submitted || row.dateSubmitted}
-          </span>
-        </div>
-      ),
+      title: "Total Employees on Bench",
+      value: kpiData.total_bench_employees,
+      change: -10.5,
+      icon: Users,
+      color: "text-[#00283c]",
+      bgColor: "bg-blue-50",
+      description: "Currently available for deployment",
+      target: 30,
+      period: "Last 7 days",
     },
     {
-      key: "status",
-      header: "Status",
-      render: (row: any) => (
-        <span
-          className={
-            row.status === "Matched"
-              ? "rounded-full bg-[color:var(--evergreen-green)]/15 px-2 py-0.5 text-[11px] font-medium text-[color:var(--evergreen-green)]"
-              : "rounded-full bg-[color:var(--highlight-yellow)]/15 px-2 py-0.5 text-[11px] font-medium text-[color:var(--highlight-yellow)]"
-          }
-        >
-          {row.status}
-        </span>
-      ),
+      title: "Avg. Bench Time (Days)",
+      value: kpiData.avg_bench_days,
+      change: -11.3,
+      icon: Clock,
+      color: "text-[#00D6F2]",
+      bgColor: "bg-cyan-50",
+      description: "Average days on bench across employees",
+      target: 14,
+      period: "Rolling 30 days",
     },
     {
-      key: "top_candidate_fit_score",
-      header: "Top Fit Score",
-      align: "right",
-      render: (row: any) => (
-        <div className="flex justify-end">
-          <ProgressBar
-            value={row.top_candidate_fit_score || row.topCandidateFitScore || 0}
-          />
-        </div>
-      ),
+      title: "Total Placements (Last 30 Days)",
+      value: kpiData.placements_last_30_days,
+      change: 28.6,
+      icon: Activity,
+      color: "text-[#56e13b]",
+      bgColor: "bg-emerald-50",
+      description: "Bench to client project conversions",
+      target: 40,
+      period: "Last 30 days",
+    },
+    {
+      title: "Highest Demand Skill",
+      value: kpiData.highest_demand_skill,
+      change: 0,
+      icon: Zap,
+      color: "text-[#FFD700]",
+      bgColor: "bg-yellow-50",
+      description: "Most requested in active client requirements",
+      period: "Current month",
     },
   ];
 
@@ -247,7 +230,7 @@ export const DashboardPage: React.FC = () => {
           </div>
         </div>
 
-        <BenchSizeTrendChart data={benchTrend} />
+        <BenchSizeTrendChart data={benchTrendData.trend} labels={benchTrendData.labels} />
       </section>
 
       {/* KPI cards */}
