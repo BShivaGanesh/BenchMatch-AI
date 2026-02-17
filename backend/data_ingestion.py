@@ -758,7 +758,7 @@ def search_employees(
         # "active" = on bench and available = 95%
         # "inactive" = bench but not immediately available = 70%
         if match["bench_status"] == "active":
-            avail_pct = 95  # Active bench employees are readily available
+            avail_pct = 100  # Active bench employees are readily available
         elif match["bench_status"] == "inactive":
             avail_pct = 70  # Inactive bench employees may need more time
         else:

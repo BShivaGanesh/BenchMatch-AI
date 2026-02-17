@@ -36,7 +36,6 @@ const CandidateShortlistPage: React.FC = () => {
     null,
   );
   const [fitOpen, setFitOpen] = useState(false);
-  const [selectedBreakdown, setSelectedBreakdown] = useState<any>(null);
 
   // Backend data state
   const [requirement, setRequirement] = useState<any>(null);
@@ -115,6 +114,7 @@ const CandidateShortlistPage: React.FC = () => {
             `${m.experience_alignment?.candidate_years ?? 0}+ years of experience in the field.`,
           certifications: certifications,
           skill_match_details: m.skill_match_details || [],
+          relevant_projects: m.relevant_projects || [],
           // Store breakdown scores
           skills_match: breakdown.skills_match ?? 0,
           experience_match: breakdown.experience_match ?? 0,
@@ -213,6 +213,7 @@ const CandidateShortlistPage: React.FC = () => {
                 `${m.experience_years ?? 0}+ years of experience in the field.`,
               certifications: certifications,
               skill_match_details: m.skill_match_details || [],
+              relevant_projects: m.relevant_projects || [],
               // Store breakdown scores
               skills_match: breakdown.skills_match ?? 0,
               experience_match: breakdown.experience_match ?? 0,
@@ -311,6 +312,15 @@ const CandidateShortlistPage: React.FC = () => {
       : 0;
 
   const toFitData = (c: Candidate): any => {
+    // Debug logging
+    console.log("toFitData - Input candidate:", {
+      id: c.id,
+      name: c.name,
+      skill_match_details: c.skill_match_details,
+      experience_alignment: c.experience_alignment,
+      relevant_projects: c.relevant_projects,
+    });
+    
     return {
       id: c.id,
       name: c.name,
@@ -331,20 +341,32 @@ const CandidateShortlistPage: React.FC = () => {
       strengths: c.strengths,
       gaps: c.gaps,
       skills: (c.skill_match_details || []).map((s: any) => ({
-        name: s.required_skill,
-        match: s.candidate_evidence,
+        requiredSkill: s.required_skill,
+        candidateSkill: s.candidate_evidence,
         confidence: s.confidence,
       })),
       experience: {
-        requiredYears: requirement?.minimumExperience || 5,
-        candidateYears: (c.experience_alignment?.candidate_years ?? requirement?.minimumExperience) || 5,
-        projects: [],
+        requiredYears: c.experience_alignment?.required_years ?? requirement?.minimumExperience ?? 0,
+        candidateYears: c.experience_alignment?.candidate_years ?? 0,
+        projects: (c.relevant_projects || []).map((p: any) => ({
+          projectName: p.project_name || "Project",
+          role: p.role || "Contributor",
+          years: p.duration_years || 0,
+          description: p.experience_summary || p.description || "",
+        })),
       },
-      certifications: (c.certification_details?.required?.map((cert: any) => ({
-        name: cert.certificate_name,
-        required: true,
-        held: cert.status === "✓ Met",
-      }))) ?? [],
+      certifications: [
+        ...(c.certification_details?.required?.map((cert: any) => ({
+          name: cert.certificate_name,
+          required: true,
+          held: cert.status === "✓ Met",
+        })) ?? []),
+        ...(c.certification_details?.additional?.map((cert: any) => ({
+          name: cert.certificate_name,
+          required: false,
+          held: cert.status === "Held",
+        })) ?? []),
+      ],
       availability: {
         benchStatus: c.benchStatus,
         sinceDate: "2025-11-28",
@@ -494,17 +516,7 @@ const CandidateShortlistPage: React.FC = () => {
         <Table
           columns={columns}
           data={candidates}
-          onRowClick={async (row) => {
-            setSelectedCandidate(row);
-            // Use breakdown data already in the candidate object
-            setSelectedBreakdown({
-              experience_match: row.experience_match,
-              availability_match: row.availability_match,
-              certifications_match: row.certifications_match,
-              skill_match_details: row.skill_match_details,
-              certification_details: row.certification_details,
-              experience_alignment: row.experience_alignment,
-            });
+          onRowClick={async (row) => {            console.log("Selected candidate data:", row);            setSelectedCandidate(row);
             setFitOpen(true);
           }}
         />
@@ -515,7 +527,6 @@ const CandidateShortlistPage: React.FC = () => {
         open={fitOpen}
         onClose={() => {
           setFitOpen(false);
-          setSelectedBreakdown(null);
         }}
         onSelect={async () => {
           if (!selectedCandidate?.shortlistItemId) {
@@ -544,7 +555,6 @@ const CandidateShortlistPage: React.FC = () => {
       )
     );
             setFitOpen(false);
-            setSelectedBreakdown(null);
           } catch (e: any) {
             console.error("Select candidate failed:", e);
             alert(e.message || "Failed to select candidate");
@@ -554,7 +564,6 @@ const CandidateShortlistPage: React.FC = () => {
   }
         }}
         candidate={selectedCandidate ? toFitData(selectedCandidate) : null}
-        breakdown={selectedBreakdown}
         loading={selectLoading}
         isAlreadySelected={!!selectedCandidate?.selected}
       />

@@ -253,6 +253,14 @@ def search(request: SearchRequest):
                     for candidate in results:
                         item_id = f"CSI-{str(uuid.uuid4())[:8].upper()}"
                         breakdown = candidate.get("breakdown", {})
+                        
+                        # Include all enriched fields in the breakdown for storage
+                        complete_breakdown = {
+                            **breakdown,
+                            "skill_match_details": candidate.get("skill_match_details", []),
+                            "experience_alignment": candidate.get("experience_alignment", {}),
+                            "relevant_projects": candidate.get("relevant_projects", []),
+                        }
 
                         skill_details = candidate.get("skill_match_details", [])
                         matched_skills = [
@@ -303,7 +311,7 @@ def search(request: SearchRequest):
                                 "strengths": strengths_summary,
                                 "gaps": gaps_summary,
                                 "llm_summary": llm_summary,
-                                "llm_json": json.dumps(breakdown),
+                                "llm_json": json.dumps(complete_breakdown),
                             },
                         )
 
@@ -478,13 +486,27 @@ def get_shortlist(requirement_id: str):
 
         # Parse JSON fields
         for candidate in candidates:
+            breakdown = {}
             if candidate.get("llm_breakdown_json"):
                 try:
-                    candidate["breakdown"] = json.loads(candidate["llm_breakdown_json"])
-                except:
+                    breakdown = json.loads(candidate["llm_breakdown_json"])
+                    candidate["breakdown"] = breakdown
+                except Exception as e:
+                    logger.warning(f"Failed to parse breakdown JSON: {e}")
                     candidate["breakdown"] = {}
-            # strengths and gaps remain plain text for UI display
-            # do not attempt json.loads(strengths) - it's a comma-separated string
+            
+            # Extract or construct enriched fields from breakdown
+            candidate["skill_match_details"] = breakdown.get("skill_match_details", [])
+            candidate["experience_alignment"] = breakdown.get("experience_alignment", {
+                "required_years": 0,
+                "candidate_years": float(candidate.get("experience_years", 0)),
+                "exceeds_requirement": False
+            })
+            candidate["relevant_projects"] = breakdown.get("relevant_projects", [])
+            candidate["certification_details"] = breakdown.get("certification_details", {
+                "required": [],
+                "additional": []
+            })
 
         return {
             "status": "success",
@@ -531,9 +553,26 @@ def get_breakdown(requirement_id: str, employee_id: str):
         # Parse JSON fields
         if breakdown.get("llm_breakdown_json"):
             try:
-                breakdown["breakdown"] = json.loads(breakdown["llm_breakdown_json"])
-            except:
+                breakdown_data = json.loads(breakdown["llm_breakdown_json"])
+                breakdown["breakdown"] = breakdown_data
+                # Extract enriched fields from breakdown
+                breakdown["skill_match_details"] = breakdown_data.get("skill_match_details", [])
+                breakdown["experience_alignment"] = breakdown_data.get("experience_alignment", {
+                    "required_years": 0,
+                    "candidate_years": float(breakdown.get("experience_years", 0)),
+                    "exceeds_requirement": False
+                })
+                breakdown["relevant_projects"] = breakdown_data.get("relevant_projects", [])
+                breakdown["certification_details"] = breakdown_data.get("certification_details", {
+                    "required": [],
+                    "additional": []
+                })
+            except Exception as e:
+                logger.warning(f"Failed to parse breakdown JSON: {e}")
                 breakdown["breakdown"] = {}
+                breakdown["skill_match_details"] = []
+                breakdown["experience_alignment"] = {}
+                breakdown["relevant_projects"] = []
 
         return {"status": "success", "data": breakdown}
     except HTTPException:

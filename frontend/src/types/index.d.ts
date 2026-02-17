@@ -43,6 +43,12 @@ export interface Candidate {
     candidate_evidence: string;
     confidence: number;
   }>;
+  relevant_projects?: Array<{
+    project_name: string;
+    experience_summary: string;
+    role?: string;
+    duration_years?: number;
+  }>;
   // Breakdown scores
   skills_match?: number;
   experience_match?: number;
