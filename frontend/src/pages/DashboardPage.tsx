@@ -37,8 +37,8 @@ const kpiMetrics: KpiCardProps[] = [
     value: 27,
     change: 28.6,
     icon: Activity,
-    color: "text-[#56e13b]",
-    bgColor: "bg-emerald-50",
+    color: "text-[#FFD700]",
+    bgColor: "bg-yellow-50",
     description: "Bench to client project conversions",
     target: 40,
     period: "Last 30 days",
@@ -48,8 +48,8 @@ const kpiMetrics: KpiCardProps[] = [
     value: "React + Node",
     change: 0,
     icon: Zap,
-    color: "text-[#FFD700]",
-    bgColor: "bg-yellow-50",
+    color: 'text-[#db005a]',
+      bgColor: 'bg-red-50',
     description: "Most requested in active client requirements",
     period: "Current month",
   },
@@ -228,20 +228,20 @@ export const DashboardPage: React.FC = () => {
       <section className="grid gap-4 lg:grid-cols-[2fr,1.3fr]">
         <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-wide text-[color:var(--ig-blue)]">
-            Evergreen Bench Overview
+            InsightGlobal Consulting Bench Overview
           </p>
           <p className="mt-1 text-xs text-slate-500">
             Monitor bench supply, placement velocity, and emerging skill gaps in
             real time.
           </p>
           <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
-            <span className="rounded-full bg-emerald-50 px-3 py-1 font-medium text-emerald-700">
+            <span className="rounded-full bg-blue-50 px-3 py-1 font-medium text-[#00D6F2]">
               Bench health: Stable
             </span>
-            <span className="rounded-full bg-yellow-50 px-3 py-1 font-medium text-yellow-700">
+            <span className="rounded-full bg-blue-50 px-3 py-1 font-medium text-[#FFD700]">
               Hot skill: React + Node
             </span>
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-slate-600">
+            <span className="rounded-full bg-emerald-50 px-3 py-1 text-[#db005a]">
               Last refresh: 2 min ago
             </span>
           </div>

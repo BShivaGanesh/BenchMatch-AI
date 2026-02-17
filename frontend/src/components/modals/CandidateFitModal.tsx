@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import Button from "../ui/Button";
 import type { Candidate } from "../../types";
+import DotsIcon from "../../assets/IG_Navy.jpg";
 
 type BenchStatus = "Bench" | "Partial" | "Not Bench";
 
@@ -62,12 +63,11 @@ interface CandidateFitModalProps {
   open: boolean;
   onClose: () => void;
   onSelect?: () => void;
-  candidate: Candidate; 
-  breakdown?: any; 
+  candidate: Candidate;
+  breakdown?: any;
   loading?: boolean;
   isAlreadySelected?: boolean;
 }
-
 
 // Mock data for a high-fit candidate
 const mockCandidate: CandidateFitData = {
@@ -171,9 +171,9 @@ const CandidateFitModal: React.FC<CandidateFitModalProps> = ({
 }) => {
   if (!open || !candidate) return null;
   const [activeTab, setActiveTab] = useState<"summary" | "skills" | "certs">(
-    "summary"
+    "summary",
   );
-   const fullCandidate = {
+  const fullCandidate = {
     ...candidate,
     score: {
       overallFit: candidate.overallFitScore,
@@ -196,7 +196,6 @@ const CandidateFitModal: React.FC<CandidateFitModalProps> = ({
     },
   };
 
-
   if (!open) return null;
 
   const { score } = fullCandidate;
@@ -205,15 +204,15 @@ const CandidateFitModal: React.FC<CandidateFitModalProps> = ({
     fullCandidate.availability.benchStatus === "Bench"
       ? "bg-[color:var(--evergreen-green)]/15 text-[color:var(--evergreen-green)]"
       : fullCandidate.availability.benchStatus === "Partial"
-      ? "bg-[color:var(--highlight-yellow)]/15 text-[color:var(--highlight-yellow)]"
-      : "bg-slate-100 text-slate-600";
+        ? "bg-[color:var(--highlight-yellow)]/15 text-[color:var(--highlight-yellow)]"
+        : "bg-slate-100 text-slate-600";
 
   const benchLabel =
     fullCandidate.availability.benchStatus === "Bench"
       ? "Immediately available"
       : fullCandidate.availability.benchStatus === "Partial"
-      ? "Partially allocated"
-      : "Not currently on bench";
+        ? "Partially allocated"
+        : "Not currently on bench";
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/50 px-2 py-4">
@@ -221,9 +220,16 @@ const CandidateFitModal: React.FC<CandidateFitModalProps> = ({
         {/* Header */}
         <header className="flex items-center justify-between bg-[color:var(--ig-blue)] px-4 py-3 text-slate-50 md:px-6">
           <div className="flex flex-col">
-            <h2 className="text-sm font-semibold md:text-base">
-              Candidate Detailed Fit Report for {candidate.name}
-            </h2>
+            <div className="flex items-center gap-2 mb-1">
+              <img
+                src={DotsIcon}
+                alt=""
+                className="h-5 w-6 flex-shrink-0 -mt-px md:h-6 md:w-7 lg:h-7 lg:w-8"
+              />
+              <h2 className="text-sm font-semibold md:text-base leading-tight">
+                Candidate Detailed Fit Report for {candidate.name}
+              </h2>
+            </div>
             <p className="text-[11px] text-slate-300">
               {candidate.role} · {candidate.email}
             </p>
@@ -248,23 +254,23 @@ const CandidateFitModal: React.FC<CandidateFitModalProps> = ({
               </div>
             </div>
 
-         {!isAlreadySelected && (
-            <Button
-              variant="primary"
-              className="hidden md:inline-flex"
-              onClick={onSelect}
-              disabled={loading} 
-            >
-              {loading ? (
-                <span className="flex items-center gap-2">
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-r-white" />
-                  Selecting...
-                </span>
-              ) : (
-                'Select Candidate'
-              )}
-            </Button>
-          )}
+            {!isAlreadySelected && (
+              <Button
+                variant="primary"
+                className="hidden md:inline-flex"
+                onClick={onSelect}
+                disabled={loading}
+              >
+                {loading ? (
+                  <span className="flex items-center gap-2">
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-r-white" />
+                    Selecting...
+                  </span>
+                ) : (
+                  "Select Candidate"
+                )}
+              </Button>
+            )}
 
             <button
               onClick={onClose}
@@ -283,7 +289,7 @@ const CandidateFitModal: React.FC<CandidateFitModalProps> = ({
               <button
                 onClick={() => setActiveTab("summary")}
                 className={`rounded-full px-3 py-1 font-medium ${
-                 activeTab === "summary"
+                  activeTab === "summary"
                     ? "bg-[color:var(--ig-blue)] text-white"
                     : "text-slate-600 hover:bg-slate-200"
                 }`}
@@ -312,23 +318,23 @@ const CandidateFitModal: React.FC<CandidateFitModalProps> = ({
               </button>
             </div>
 
-           {!isAlreadySelected && (
-            <Button
-              variant="primary"
-              className="md:hidden"
-              onClick={onSelect}
-              disabled={loading} // ADD loading state
-            >
-              {loading ? (
-                <span className="flex items-center gap-1.5 text-xs">
-                  <div className="h-3 w-3 animate-spin rounded-full border-2 border-current/30 border-r-current" />
-                  Selecting...
-                </span>
-              ) : (
-                'Select'
-              )}
-            </Button>
-          )}
+            {!isAlreadySelected && (
+              <Button
+                variant="primary"
+                className="md:hidden"
+                onClick={onSelect}
+                disabled={loading} // ADD loading state
+              >
+                {loading ? (
+                  <span className="flex items-center gap-1.5 text-xs">
+                    <div className="h-3 w-3 animate-spin rounded-full border-2 border-current/30 border-r-current" />
+                    Selecting...
+                  </span>
+                ) : (
+                  "Select"
+                )}
+              </Button>
+            )}
           </div>
 
           {/* Scrollable content */}
@@ -336,9 +342,7 @@ const CandidateFitModal: React.FC<CandidateFitModalProps> = ({
             {activeTab === "summary" && (
               <SummaryTab candidate={fullCandidate} />
             )}
-            {activeTab === "skills" && (
-              <SkillsTab candidate={fullCandidate} />
-            )}
+            {activeTab === "skills" && <SkillsTab candidate={fullCandidate} />}
             {activeTab === "certs" && (
               <CertsTab
                 candidate={fullCandidate}
@@ -365,8 +369,8 @@ const SummaryTab: React.FC<TabProps> = ({ candidate }) => {
       label: "Skill Match",
       weight: "60% weight",
       value: score.skillMatch,
-      color: "bg-[color:var(--evergreen-green)]/15 text-[color:var(--evergreen-green)]",
-      bar: "bg-[color:var(--evergreen-green)]",
+      color: "bg-[#00283c]/15 text-[#00283c]",
+      bar: "bg-[#00283c]",
     },
     {
       label: "Experience Relevance",
@@ -379,7 +383,8 @@ const SummaryTab: React.FC<TabProps> = ({ candidate }) => {
       label: "Availability",
       weight: "10% weight",
       value: score.availability,
-      color: "bg-[color:var(--highlight-yellow)]/20 text-[color:var(--highlight-yellow)]",
+      color:
+        "bg-[color:var(--highlight-yellow)]/20 text-[color:var(--highlight-yellow)]",
       bar: "bg-[color:var(--highlight-yellow)]",
     },
     {
@@ -441,8 +446,8 @@ const SummaryTab: React.FC<TabProps> = ({ candidate }) => {
           </p>
         </div>
         <div className="grid gap-3 md:grid-cols-2">
-          <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-3 shadow-sm">
-            <h3 className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700">
+          <div className="rounded-xl border border-emerald-100 bg-white p-3 shadow-sm">
+            <h3 className="text-[11px] font-semibold uppercase tracking-wide text-[#00D6F2]">
               Key Strengths
             </h3>
             <ul className="mt-1 list-disc space-y-1 pl-4 text-xs text-emerald-900">
@@ -499,8 +504,8 @@ const SkillsTab: React.FC<TabProps> = ({ candidate }) => {
                 const badgeColor = strong
                   ? "bg-[color:var(--evergreen-green)]/15 text-[color:var(--evergreen-green)]"
                   : moderate
-                  ? "bg-[color:var(--highlight-yellow)]/20 text-[color:var(--highlight-yellow)]"
-                  : "bg-[color:var(--alert-red)]/15 text-[color:var(--alert-red)]";
+                    ? "bg-[color:var(--highlight-yellow)]/20 text-[color:var(--highlight-yellow)]"
+                    : "bg-[color:var(--alert-red)]/15 text-[color:var(--alert-red)]";
 
                 return (
                   <tr key={row.requiredSkill} className="hover:bg-slate-50/70">
@@ -537,9 +542,7 @@ const SkillsTab: React.FC<TabProps> = ({ candidate }) => {
           </h3>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] text-slate-600">
-                Required years
-              </span>
+              <span className="text-[11px] text-slate-600">Required years</span>
               <span className="text-sm font-semibold text-slate-900">
                 {experience.requiredYears}+ yrs
               </span>
@@ -548,19 +551,19 @@ const SkillsTab: React.FC<TabProps> = ({ candidate }) => {
               <span className="text-[11px] text-slate-600">
                 Candidate years
               </span>
-              <span className="text-sm font-semibold text-[color:var(--evergreen-green)]">
+              <span className="text-sm font-semibold text-[color:var(--ig-blue)]">
                 {experience.candidateYears} yrs
               </span>
             </div>
             <div className="mt-2">
               <div className="h-1.5 w-full rounded-full bg-slate-200">
                 <div
-                  className="h-1.5 rounded-full bg-[color:var(--evergreen-green)]"
+                  className="h-1.5 rounded-full bg-[#00D6F2]"
                   style={{
                     width: `${Math.min(
                       100,
                       (experience.candidateYears / experience.requiredYears) *
-                        100
+                        100,
                     )}%`,
                   }}
                 />

@@ -7,8 +7,9 @@ import ProgressBar from "../components/ui/ProgressBar";
 import CandidateFitModal from "../components/modals/CandidateFitModal";
 import type { Candidate } from "../types";
 import { getCandidateBreakdown, API_BASE } from "../api/benchApi";
+import DotsIcon from "../assets/IG_Whte.jpg";
+import IgBackground from "../assets/image.png";
 
-// Type for location state from NewRequirementPage
 type ShortlistLocationState = {
   requirementId: string;
   requirement: {
@@ -262,7 +263,7 @@ const CandidateShortlistPage: React.FC = () => {
       render: (row) => {
       if (row.selected) {
         return (
-          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
+          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-[#00D6F2]">
             Allocated
           </span>
         );
@@ -368,7 +369,7 @@ const CandidateShortlistPage: React.FC = () => {
           <div className="mb-3 text-sm font-semibold text-slate-700">
             No shortlist data found
           </div>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-[#00D6F2]">
             Requirement ID: {finalRequirementId || "Not provided"}
           </p>
         </div>
@@ -390,7 +391,7 @@ const CandidateShortlistPage: React.FC = () => {
                 {requirement.roleTitle} · {requirement.clientName}
               </h2>
             </div>
-            <div className="rounded-full bg-[color:var(--evergreen-green)]/15 px-3 py-1 text-[11px] font-medium text-[color:var(--evergreen-green)]">
+            <div className="rounded-full bg-[#00D6F2]/15 px-3 py-1 text-[11px] font-medium text-[#00D6F2]">
               ID: {requirement.id}
             </div>
           </div>
@@ -434,7 +435,7 @@ const CandidateShortlistPage: React.FC = () => {
           <p className="text-[11px] font-medium text-slate-500">
             Candidates evaluated
           </p>
-          <p className="text-lg font-semibold text-[color:var(--ig-blue)]">
+          <p className="text-lg font-semibold text-[#00283c]">
             {candidatesEvaluated}
           </p>
         </div>
@@ -442,7 +443,7 @@ const CandidateShortlistPage: React.FC = () => {
           <p className="text-[11px] font-medium text-slate-500">
             Top fit score
           </p>
-          <p className="text-lg font-semibold text-[color:var(--evergreen-green)]">
+          <p className="text-lg font-semibold text-[#00D6F2]">
             {topFit}%
           </p>
         </div>
@@ -450,26 +451,37 @@ const CandidateShortlistPage: React.FC = () => {
           <p className="text-[11px] font-medium text-slate-500">
             Median fit score
           </p>
-          <p className="text-lg font-semibold text-slate-800">{medianFit}%</p>
+          <p className="text-lg font-semibold text-[#FFD700]">{medianFit}%</p>
         </div>
         <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
           <p className="text-[11px] font-medium text-slate-500">
             Time to shortlist
           </p>
-          <p className="text-lg font-semibold text-slate-800">~ 3 sec</p>
+          <p className="text-lg font-semibold text-[#DB005A]">~ 3 sec</p>
         </div>
       </section>
 
       {/* Candidates table */}
-      <section className="space-y-3">
+      <section 
+  className="relative space-y-3 min-h-[600px] md:min-h-[700px]"
+>
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-700">
-            Candidate Shortlist
-          </h2>
-          <p className="text-xs text-slate-500">
-            Click a row to view detailed AI rationale.
-          </p>
-        </div>
+  <div className="flex items-center gap-2">
+    <img
+      src={DotsIcon}
+      alt=""
+      className="h-5 w-5 flex-shrink-0 -mt-0.5 md:h-6 md:w-6 lg:h-7 lg:w-7"
+    />
+    <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-700 leading-tight">
+      Candidate Shortlist
+    </h2>
+  </div>
+  <p className="text-xs text-slate-500">
+    Click a row to view detailed AI rationale.
+  </p>
+</div>
+
+
         <Table
           columns={columns}
           data={candidates}

@@ -4,6 +4,8 @@ import Button from "../components/ui/Button";
 import TagInput from "../components/ui/TagInput";
 import type { RequirementFormValues } from "../types";
 import { createRequirement, runSearch, API_BASE } from "../api/benchApi";
+import BenchLogo from "../assets/image.png";
+import IgDots from "../assets/IG_Whte.jpg";
 
 type RequirementErrors = {
   clientName?: string;
@@ -135,13 +137,17 @@ export const NewRequirementPage: React.FC = () => {
   };
 
   return (
-    <div className="relative">
-      {/* Full-page loading overlay while AI processes */}
+    <div className="relative min-h-screen bg-gradient-to-br from-slate-50 to-white p-8 md:p-12">
+      {/* Logo background: top-left, subtle */}
+      <div
+        className="absolute inset-0 bg-no-repeat bg-[length:300px_auto] bg-[position:top_20px_left_20px] bg-opacity-8 pointer-events-none z-0"
+        style={{ backgroundImage: `url(${BenchLogo})` }}
+      />
       {isSubmitting && (
         <div className="pointer-events-auto fixed inset-0 z-30 flex items-center justify-center bg-slate-900/40">
           <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
             <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-[color:var(--ig-blue)]">
-              Evergreen AI Matching
+              InsightGlobal Consulting AI Matching
             </div>
 
             <p className="text-sm font-medium text-slate-900">
@@ -152,7 +158,6 @@ export const NewRequirementPage: React.FC = () => {
               certifications.
             </p>
 
-            {/* Custom circle loader */}
             <div className="mt-6 flex flex-col items-center gap-3">
               <div className="circle-loader">
                 <div />
@@ -178,11 +183,18 @@ export const NewRequirementPage: React.FC = () => {
       >
         {/* Header */}
         <header className="space-y-1 border-b border-slate-200 pb-4">
-          <h2 className="text-base font-semibold text-slate-900">
-            New Project Requirement
-          </h2>
+          <div className="flex items-center gap-1.5">
+            <img
+              src={IgDots}
+              alt=""
+              className="h-5 w-6 flex-shrink-0 -mt-0.5 md:h-6 md:w-7 lg:h-7 lg:w-8"
+            />
+            <h2 className="text-base font-semibold text-slate-900 leading-tight">
+              New Project Requirement
+            </h2>
+          </div>
           <p className="text-xs text-slate-500">
-            Capture the client context so Evergreen can generate the best bench
+            Capture the client context so BenchMatch AI can generate the best bench
             matches.
           </p>
         </header>
@@ -360,7 +372,7 @@ export const NewRequirementPage: React.FC = () => {
         {/* Actions */}
         <section className="flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-[11px] text-slate-500">
-            Evergreen will embed this requirement and rank all eligible bench
+            BenchMatch AI will embed this requirement and rank all eligible bench
             candidates in real time.
           </p>
           <div className="flex justify-end gap-2">

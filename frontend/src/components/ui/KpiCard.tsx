@@ -8,10 +8,10 @@ import {
 export interface KpiCardProps {
   title: string;
   value: string | number;
-  change: number; // % change vs previous period
+  change: number; 
   icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
-  color: string;   // e.g. "text-[#00283c]"
-  bgColor: string; // e.g. "bg-blue-50"
+  color: string;   
+  bgColor: string; 
   description: string;
   target?: number;
   period: string;
@@ -62,8 +62,8 @@ const KpiCard: React.FC<KpiCardProps> = ({
             <div
               className={`flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold ${
                 isPositive
-                  ? "bg-emerald-100 text-emerald-700"
-                  : "bg-red-100 text-red-700"
+                  ? "bg-blue-50 text-[#00D6F2]"
+                  : "bg-blue-50 text-[#db005a]"
               }`}
             >
               <TrendIcon className="h-3 w-3" />
@@ -112,7 +112,7 @@ const KpiCard: React.FC<KpiCardProps> = ({
       {/* Period info */}
       <div className="flex items-center justify-between text-xs text-slate-500">
         <span>{period}</span>
-        <span className={isPositive ? "text-emerald-600" : "text-red-600"}>
+        <span className={isPositive ? "text-[#00D6F2]" : "text-[#DB005A]"}>
           vs previous period
         </span>
       </div>

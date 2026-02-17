@@ -2,7 +2,7 @@ import React from "react";
 
 interface BenchSizeTrendChartProps {
   data: number[];
-  labels?: string[]; // optional day labels, e.g. ["Mon", ...]
+  labels?: string[];
 }
 
 const BenchSizeTrendChart: React.FC<BenchSizeTrendChartProps> = ({
@@ -17,13 +17,13 @@ const BenchSizeTrendChart: React.FC<BenchSizeTrendChartProps> = ({
   const rawChange = ((last - first) / (first || 1)) * 100;
   const isPositive = last < first;
   const changeAbs = Math.abs(rawChange);
-  const changeColor = isPositive
-    ? "text-[color:var(--evergreen-green)]"
-    : "text-[color:var(--alert-red)]";
-  const pillBg = isPositive
-    ? "bg-[color:var(--evergreen-green)]/10"
-    : "bg-[color:var(--alert-red)]/10";
+const changeColor = isPositive
+    ? "text-[#00D6F2]" 
+    : "text-[#DB005A]"; 
 
+const pillBg = isPositive
+    ? "bg-[#00D6F2]/10" 
+    : "bg-[#DB005A]/10";
   const minVal = Math.min(...data);
   const maxVal = Math.max(...data);
   const range = maxVal - minVal || 1;
@@ -85,12 +85,12 @@ const BenchSizeTrendChart: React.FC<BenchSizeTrendChartProps> = ({
             <linearGradient id="benchTrendArea" x1="0" y1="0" x2="0" y2="1">
               <stop
                 offset="0%"
-                stopColor={isPositive ? "#56e13b" : "#db005a"}
+                stopColor={isPositive ? "#00D6F2" : "#db005a"}
                 stopOpacity={0.3}
               />
               <stop
                 offset="100%"
-                stopColor={isPositive ? "#56e13b" : "#db005a"}
+                stopColor={isPositive ? "#00D6F2" : "#db005a"}
                 stopOpacity={0}
               />
             </linearGradient>
@@ -98,7 +98,7 @@ const BenchSizeTrendChart: React.FC<BenchSizeTrendChartProps> = ({
           <path d={areaPath} fill="url(#benchTrendArea)" stroke="none" />
           <polyline
             fill="none"
-            stroke={isPositive ? "#56e13b" : "#db005a"}
+            stroke={isPositive ? "#00D6F2" : "#DB005A"}
             strokeWidth={1.8}
             strokeLinejoin="round"
             strokeLinecap="round"

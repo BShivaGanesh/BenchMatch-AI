@@ -13,12 +13,13 @@ const Badge: React.FC<BadgeProps> = ({ variant, children }) => {
     "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium";
 
   const map: Record<BadgeVariant, string> = {
-    bench:
-      "bg-[color:var(--evergreen-green)]/15 text-[color:var(--evergreen-green)]",
-    partial:
-      "bg-[color:var(--highlight-yellow)]/15 text-[color:var(--highlight-yellow)]",
-    notBench: "bg-slate-100 text-slate-600",
-  };
+  bench:
+    "bg-[#00D6F2]/15 text-[#00D6F2]",
+  partial:
+    "bg-[#FFD700]/15 text-[#FFD700]",
+  notBench: 
+    "bg-[#DB005A]/15 text-[#DB005A]",
+};
 
   return <span className={clsx(base, map[variant])}>{children}</span>;
 };

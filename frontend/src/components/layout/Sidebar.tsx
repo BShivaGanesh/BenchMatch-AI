@@ -5,7 +5,7 @@ import {
   HiOutlineUserGroup,
   HiOutlineClipboardList,
 } from "react-icons/hi";
-import logo from "../../assets/logo2.png";
+import logo from "../../assets/IG_Whte.jpg";
 import dotArtwork from "../../assets/IG.png";
 
 import { IoMenu } from "react-icons/io5";
@@ -100,7 +100,7 @@ const Sidebar: React.FC = () => {
                 </div>
               </div>
               <span className="font-inter text-[20px] font-semibold leading-6 text-white md:text-[24px]">
-                Evergreen
+                InsightGobal
               </span>
             </>
           )}
