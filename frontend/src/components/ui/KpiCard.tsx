@@ -3,7 +3,7 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Loader,
-} from "lucide-react"; // make sure lucide-react is installed
+} from "lucide-react"; 
 
 export interface KpiCardProps {
   title: string;

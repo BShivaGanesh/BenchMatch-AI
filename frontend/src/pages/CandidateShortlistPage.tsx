@@ -1,125 +1,241 @@
-import React, { useState } from "react";
-import { useLocation } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useParams, useLocation } from "react-router-dom";
 import Table from "../components/ui/Table";
 import type { TableColumn } from "../components/ui/Table";
 import Badge from "../components/ui/Badge";
 import ProgressBar from "../components/ui/ProgressBar";
 import CandidateFitModal from "../components/modals/CandidateFitModal";
-import type { Candidate, RequirementFormValues } from "../types";
+import type { Candidate } from "../types";
+import { API_BASE } from "../api/benchApi";
 
-const mockRequirement = {
-  id: "REQ-10234",
-  clientName: "Global Retail Corp",
-  roleTitle: "Senior Full Stack Engineer",
-  requiredSkills: ["React", "Node.js", "AWS", "PostgreSQL"],
-  minimumExperience: 5,
-  mandatoryCertifications: "AWS Solutions Architect, Azure DP-203",
-  availabilityDate: "2026-01-10",
-  summary:
-    "Greenfield loyalty platform rebuild, high-traffic customer engagement system. Cross-functional squad, CI/CD, cloud-native on AWS with strong integration experience.",
+// Type for location state from NewRequirementPage
+type ShortlistLocationState = {
+  requirementId: string;
+  requirement: {
+    requirement_id: string;
+    client_name: string;
+    role_title: string;
+    required_skills: string[];
+    minimum_experience: number;
+    mandatory_certifications: string[];
+    availability_date: string | null;
+    requirement_summary: string;
+  };
+  matches: any[];
+  count: number;
+  requirementStatus: string;
+  submittedAt: string;
 };
 
-const mockCandidates: Candidate[] = [
-  {
-    id: "c1",
-    rank: 1,
-    name: "Ravi",
-    email: "ravi@insightglobal.com",
-    role: "Senior Full Stack Engineer",
-    overallFitScore: 94,
-    skillMatchScore: 92,
-    benchStatus: "Bench",
-    reasonForRanking:
-      "Closest skills and domain alignment with previous large-scale retail platform work.",
-    strengths: [
-      "Deep React and Node.js experience",
-      "Led teams on AWS serverless migrations",
-      "Strong experience with event-driven architectures",
-    ],
-    gaps: ["Limited exposure to Salesforce integrations"],
-    experienceSummary:
-      "9+ years in full stack engineering with focus on customer-facing web applications, including 3 major retail digital transformation programs.",
-    certifications: [
-      "AWS Solutions Architect Associate",
-      "Scrum Master (PSM I)",
-    ],
-  },
-  {
-    id: "c2",
-    rank: 2,
-    name: "Ram",
-    email: "ram@insightglobal.com",
-    role: "Senior Software Engineer",
-    overallFitScore: 88,
-    skillMatchScore: 86,
-    benchStatus: "Partial",
-    reasonForRanking:
-      "Strong engineering background and AWS skills, partial overlap with retail domain.",
-    strengths: [
-      "Excellent Node.js API design",
-      "Experience with high-volume transaction systems",
-    ],
-    gaps: ["Less React-heavy experience", "Shorter retail-specific exposure"],
-    experienceSummary:
-      "7+ years building APIs and microservices, including loyalty and payments for fintech and e-commerce.",
-    certifications: ["AWS Developer Associate"],
-  },
-  {
-    id: "c3",
-    rank: 3,
-    name: "Sreekanth",
-    email: "sreekanth@insightglobal.com",
-    role: "Full Stack Engineer",
-    overallFitScore: 76,
-    skillMatchScore: 80,
-    benchStatus: "Not Bench",
-    reasonForRanking:
-      "Good skills alignment but currently fully allocated, would require backfill.",
-    strengths: [
-      "Solid React + TypeScript skills",
-      "Experience with PostgreSQL and messaging systems",
-    ],
-    gaps: ["Limited AWS certifications", "Not currently on bench"],
-    experienceSummary:
-      "6+ years full stack with focus on customer portals and analytics dashboards.",
-    certifications: ["Azure Developer Associate"],
-  },
-];
-
 const CandidateShortlistPage: React.FC = () => {
+  const { requirementId: paramId } = useParams<{ requirementId: string }>();
+  const location = useLocation();
+  const state = location.state as ShortlistLocationState | undefined;
+
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(
-    null
+    null,
   );
   const [fitOpen, setFitOpen] = useState(false);
 
-  const location = useLocation();
+  // Backend data state
+  const [requirement, setRequirement] = useState<any>(null);
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [selectLoading, setSelectLoading] = useState(false);
 
-  const state = location.state as
-    | { requirement?: RequirementFormValues; submittedAt?: string }
-    | undefined;
+  // Use param ID or state ID
+  const finalRequirementId = paramId || state?.requirementId;
 
-  // Merge form requirement (if present) with mock structure
-  const requirement = (() => {
-    if (!state?.requirement) return mockRequirement;
-    const r = state.requirement;
-    return {
-      id: mockRequirement.id,
-      clientName: r.clientName || mockRequirement.clientName,
-      roleTitle: r.roleTitle || mockRequirement.roleTitle,
-      requiredSkills:
-        r.requiredSkills && r.requiredSkills.length > 0
-          ? r.requiredSkills
-          : mockRequirement.requiredSkills,
-      minimumExperience:
-        typeof r.minimumExperience === "number"
-          ? r.minimumExperience
-          : mockRequirement.minimumExperience,
-      mandatoryCertifications:
-        r.mandatoryCertifications || mockRequirement.mandatoryCertifications,
-      availabilityDate: r.availabilityDate || mockRequirement.availabilityDate,
-      summary: r.summary || mockRequirement.summary,
+  // Fetch data when requirement ID is available and no state
+  useEffect(() => {
+    if (!finalRequirementId) return;
+
+    // If we have state from form submission, use it directly
+    if (state?.requirement && state?.matches) {
+      setRequirement({
+        id: state.requirement.requirement_id,
+        clientName: state.requirement.client_name,
+        roleTitle: state.requirement.role_title,
+        requiredSkills: state.requirement.required_skills || [],
+        minimumExperience: state.requirement.minimum_experience || 0,
+        mandatoryCertifications: (
+          state.requirement.mandatory_certifications || []
+        ).join(", "),
+        availabilityDate: state.requirement.availability_date,
+        summary: state.requirement.requirement_summary || "",
+      });
+
+      const mapped = state.matches.map((m: any, index: number) => {
+        const breakdown = m.breakdown || {};
+
+        let strengthsArray: string[] = [];
+        if (typeof m.strengths === "string" && m.strengths) {
+          strengthsArray = m.strengths.split(",").map((s: string) => s.trim());
+        } else if (Array.isArray(m.strengths)) {
+          strengthsArray = m.strengths;
+        }
+
+        let gapsArray: string[] = [];
+        if (typeof m.gaps === "string" && m.gaps) {
+          gapsArray = m.gaps.split(",").map((g: string) => g.trim());
+        } else if (Array.isArray(m.gaps)) {
+          gapsArray = m.gaps;
+        }
+
+        // Extract certifications from breakdown.certification_details
+        const certifications = breakdown.certification_details?.required?.map(
+          (c: any) => c.certificate_name
+        ) ?? [];
+
+        return {
+          id: m.employee_id ?? `c-${index}`,
+          shortlistItemId: m.shortlist_item_id,
+          rank: m.rank ?? index + 1,
+          name: m.name ?? `Candidate ${index + 1}`,
+          email: m.email ?? "",
+          role: m.role ?? "",
+          overallFitScore: m.overall_fit_score ?? 0,
+          skillMatchScore:
+            m.skill_match_score ?? breakdown.skills_match ?? breakdown.skill_match_score ?? 0,
+          benchStatus:
+            m.bench_status === "Bench" ||
+            m.bench_status === "Partial" ||
+            m.bench_status === "Not Bench"
+              ? m.bench_status
+              : "Bench",
+          reasonForRanking:
+            m.llm_summary ??
+            m.reason_for_ranking ??
+            "No AI rationale available.",
+          strengths: strengthsArray,
+          gaps: gapsArray,
+          experienceSummary:
+            m.experience_summary ??
+            `${m.experience_alignment?.candidate_years ?? 0}+ years of experience in the field.`,
+          certifications: certifications,
+          skill_match_details: m.skill_match_details || [],
+          relevant_projects: m.relevant_projects || [],
+          // Store breakdown scores
+          skills_match: breakdown.skills_match ?? 0,
+          experience_match: breakdown.experience_match ?? 0,
+          availability_match: breakdown.availability_match ?? 95,
+          certifications_match: breakdown.certifications_match ?? 0,
+          certification_details: breakdown.certification_details,
+          experience_alignment: m.experience_alignment,
+          selected: m.selected === 1 || m.selected === true,
+        };
+      });
+      setCandidates(mapped);
+      return;
+    }
+
+    // Fetch from backend if no state (dashboard navigation)
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        // Fetch requirement details
+        const reqRes = await fetch(
+          `${API_BASE}/requirements/${finalRequirementId}`,
+        );
+        if (!reqRes.ok) throw new Error("Failed to fetch requirement");
+        const reqJson = await reqRes.json();
+
+        const reqData = reqJson.data;
+        setRequirement({
+          id: reqData.requirement_id,
+          clientName: reqData.client_name,
+          roleTitle: reqData.role_title,
+          requiredSkills: reqData.required_skills || [],
+          minimumExperience: reqData.minimum_experience || 0,
+          mandatoryCertifications: (
+            reqData.mandatory_certifications || []
+          ).join(", "),
+          availabilityDate: reqData.availability_date,
+          summary: reqData.requirement_summary || "",
+        });
+
+        // Fetch shortlist candidates
+        const shortlistRes = await fetch(
+          `${API_BASE}/shortlist/${finalRequirementId}`,
+        );
+        if (!shortlistRes.ok) throw new Error("Failed to fetch shortlist");
+        const shortlistJson = await shortlistRes.json();
+
+        const mapped = (shortlistJson.data.candidates || []).map(
+          (m: any, index: number) => {
+            const breakdown = m.breakdown || {};
+
+            let strengthsArray: string[] = [];
+            if (typeof m.strengths === "string" && m.strengths) {
+              strengthsArray = m.strengths
+                .split(",")
+                .map((s: string) => s.trim());
+            } else if (Array.isArray(m.strengths)) {
+              strengthsArray = m.strengths;
+            }
+
+            let gapsArray: string[] = [];
+            if (typeof m.gaps === "string" && m.gaps) {
+              gapsArray = m.gaps.split(",").map((g: string) => g.trim());
+            } else if (Array.isArray(m.gaps)) {
+              gapsArray = m.gaps;
+            }
+
+            // Extract certifications from breakdown.certification_details
+            const certifications = breakdown.certification_details?.required?.map(
+              (c: any) => c.certificate_name
+            ) ?? [];
+
+            return {
+              id: m.employee_id ?? `c-${index}`,
+              shortlistItemId: m.shortlist_item_id,
+              rank: m.rank ?? index + 1,
+              name: m.name ?? `Candidate ${index + 1}`,
+              email: m.email ?? "",
+              role: m.role ?? "",
+              overallFitScore: m.overall_fit_score ?? 0,
+              skillMatchScore:
+                m.skill_match_score ?? breakdown.skills_match ?? breakdown.skill_match_score ?? 0,
+              benchStatus:
+                m.bench_status === "Bench" ||
+                m.bench_status === "Partial" ||
+                m.bench_status === "Not Bench"
+                  ? m.bench_status
+                  : "Bench",
+              reasonForRanking:
+                m.llm_summary ??
+                m.reason_for_ranking ??
+                "No AI rationale available.",
+              strengths: strengthsArray,
+              gaps: gapsArray,
+              experienceSummary:
+                m.experience_summary ??
+                `${m.experience_years ?? 0}+ years of experience in the field.`,
+              certifications: certifications,
+              skill_match_details: m.skill_match_details || [],
+              relevant_projects: m.relevant_projects || [],
+              // Store breakdown scores
+              skills_match: breakdown.skills_match ?? 0,
+              experience_match: breakdown.experience_match ?? 0,
+              availability_match: breakdown.availability_match ?? 95,
+              certifications_match: breakdown.certifications_match ?? 0,
+              certification_details: breakdown.certification_details,
+              experience_alignment: m.experience_alignment,
+              selected: m.selected === 1 || m.selected === true,
+            };
+          },
+        );
+        setCandidates(mapped);
+      } catch (error) {
+        console.error("Failed to fetch shortlist data:", error);
+        alert("Failed to load shortlist data. Please try again.");
+      } finally {
+        setIsLoading(false);
+      }
     };
-  })();
+
+    fetchData();
+  }, [finalRequirementId, state]);
 
   const columns: TableColumn<Candidate>[] = [
     { key: "rank", header: "Rank", align: "center" },
@@ -127,12 +243,19 @@ const CandidateShortlistPage: React.FC = () => {
       key: "name",
       header: "Name",
       render: (row) => (
+      <div className="flex items-center gap-2">
         <div className="flex flex-col">
           <span className="text-xs font-medium text-slate-900">{row.name}</span>
           <span className="text-[11px] text-slate-500">{row.email}</span>
         </div>
-      ),
-    },
+        {row.selected && (
+          <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+            ✓ Selected
+          </span>
+        )}
+      </div>
+    ),
+  },
     {
       key: "role",
       header: "Role",
@@ -157,22 +280,144 @@ const CandidateShortlistPage: React.FC = () => {
       header: "Bench Status",
       align: "center",
       render: (row) => {
-        const variant =
-          row.benchStatus === "Bench"
-            ? "bench"
-            : row.benchStatus === "Partial"
-            ? "partial"
-            : "notBench";
-        return <Badge variant={variant}>{row.benchStatus}</Badge>;
-      },
+      if (row.selected) {
+        return (
+          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
+            Allocated
+          </span>
+        );
+      }
+      
+      const variant =
+        row.benchStatus === "Bench"
+          ? "bench"
+          : row.benchStatus === "Partial"
+          ? "partial"
+          : "notBench";
+      return <Badge variant={variant}>{row.benchStatus}</Badge>;
+    },
     },
   ];
 
-  const candidatesEvaluated = mockCandidates.length;
-  const topFit = Math.max(...mockCandidates.map((c) => c.overallFitScore));
-  const medianFit = mockCandidates
-    .map((c) => c.overallFitScore)
-    .sort((a, b) => a - b)[Math.floor(mockCandidates.length / 2)];
+  const candidatesEvaluated = candidates.length;
+  const topFit =
+    candidatesEvaluated > 0
+      ? Math.max(...candidates.map((c) => c.overallFitScore))
+      : 0;
+  const medianFit =
+    candidatesEvaluated > 0
+      ? candidates.map((c) => c.overallFitScore).sort((a, b) => a - b)[
+          Math.floor(candidates.length / 2)
+        ]
+      : 0;
+
+  const toFitData = (c: Candidate): any => {
+    // Debug logging
+    console.log("toFitData - Input candidate:", {
+      id: c.id,
+      name: c.name,
+      skill_match_details: c.skill_match_details,
+      experience_alignment: c.experience_alignment,
+      relevant_projects: c.relevant_projects,
+    });
+    
+    return {
+      id: c.id,
+      name: c.name,
+      email: c.email,
+      role: c.role,
+      benchStatus: c.benchStatus,
+      overallFitScore: c.overallFitScore,
+      skillMatchScore: c.skillMatchScore,
+      score: {
+        overallFit: c.overallFitScore,
+        rank: c.rank,
+        skillMatch: c.skillMatchScore ?? c.skills_match,
+        experience: c.experience_match ?? 80,
+        availability: c.availability_match ?? 95,
+        certifications: c.certifications_match ?? 80,
+      },
+      reasonForRanking: c.reasonForRanking,
+      strengths: c.strengths,
+      gaps: c.gaps,
+      skills: (c.skill_match_details || []).map((s: any) => ({
+        requiredSkill: s.required_skill,
+        candidateSkill: s.candidate_evidence,
+        confidence: s.confidence,
+      })),
+      experience: {
+        requiredYears: c.experience_alignment?.required_years ?? requirement?.minimumExperience ?? 0,
+        candidateYears: c.experience_alignment?.candidate_years ?? 0,
+        projects: (c.relevant_projects || []).map((p: any) => ({
+          projectName: p.project_name || "Project",
+          role: p.role || "Contributor",
+          years: p.duration_years || 0,
+          description: p.experience_summary || p.description || "",
+        })),
+      },
+      certifications: [
+        ...(c.certification_details?.required?.map((cert: any) => ({
+          name: cert.certificate_name,
+          required: true,
+          held: cert.status === "✓ Met",
+        })) ?? []),
+        ...(c.certification_details?.additional?.map((cert: any) => ({
+          name: cert.certificate_name,
+          required: false,
+          held: cert.status === "Held",
+        })) ?? []),
+      ],
+      availability: {
+        benchStatus: c.benchStatus,
+        sinceDate: "2025-11-28",
+      },
+    };
+  };
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="flex h-96 items-center justify-center animate-slide-in">
+        <div className="text-center">
+          {/* Animated Loader Container */}
+          <div className="flex justify-center mb-6">
+            <div className="circle-loader">
+              <div></div>
+              <div></div>
+              <div></div>
+              <div></div>
+              <div></div>
+              <div></div>
+              <div></div>
+              <div></div>
+            </div>
+          </div>
+
+          {/* Text Content */}
+          <div className="mb-1 text-sm font-semibold text-[color:var(--ig-blue)]">
+            Loading shortlist...
+          </div>
+          <p className="text-xs text-slate-500">Fetching candidates data</p>
+        </div>
+      </div>
+    );
+  }
+
+  // No data state
+  if (!requirement || !candidates.length) {
+    return (
+      <div className="flex h-96 items-center justify-center">
+        <div className="text-center">
+          <div className="mb-3 text-sm font-semibold text-slate-700">
+            No shortlist data found
+          </div>
+          <p className="text-xs text-slate-500">
+            Requirement ID: {finalRequirementId || "Not provided"}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -197,7 +442,7 @@ const CandidateShortlistPage: React.FC = () => {
           <div className="space-y-2">
             <p className="text-slate-100/90">{requirement.summary}</p>
             <div className="flex flex-wrap gap-1">
-              {requirement.requiredSkills.map((skill) => (
+              {requirement.requiredSkills.map((skill: string) => (
                 <span
                   key={skill}
                   className="rounded-full bg-[color:var(--light-watermark)]/20 px-2 py-0.5 text-[11px] text-[color:var(--light-watermark)]"
@@ -262,7 +507,7 @@ const CandidateShortlistPage: React.FC = () => {
       <section className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-700">
-            Ranked Candidate Shortlist
+            Candidate Shortlist
           </h2>
           <p className="text-xs text-slate-500">
             Click a row to view detailed AI rationale.
@@ -270,9 +515,8 @@ const CandidateShortlistPage: React.FC = () => {
         </div>
         <Table
           columns={columns}
-          data={mockCandidates}
-          onRowClick={(row) => {
-            setSelectedCandidate(row);
+          data={candidates}
+          onRowClick={async (row) => {            console.log("Selected candidate data:", row);            setSelectedCandidate(row);
             setFitOpen(true);
           }}
         />
@@ -281,11 +525,47 @@ const CandidateShortlistPage: React.FC = () => {
       {/* Candidate detail modal */}
       <CandidateFitModal
         open={fitOpen}
-        onClose={() => setFitOpen(false)}
-        onSelect={() => {
-          // handle "Select Candidate" action
+        onClose={() => {
           setFitOpen(false);
         }}
+        onSelect={async () => {
+          if (!selectedCandidate?.shortlistItemId) {
+            console.warn("No shortlistItemId on candidate");
+            return;
+          }
+          setSelectLoading(true);
+          try {
+            const res = await fetch(
+              `${API_BASE}/candidate/${selectedCandidate.shortlistItemId}/select`,
+              {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ hired_by: "evergreen-ui" }),
+              },
+            );
+            if (!res.ok) {
+              const err = await res.json().catch(() => ({}));
+              throw new Error(err.detail || "Failed to select candidate");
+            }
+            const json = await res.json();
+            console.log(" Candidate selected:", json);
+              setCandidates((prev) =>
+      prev.map((c) =>
+        c.id === selectedCandidate.id ? { ...c, selected: true } : c
+      )
+    );
+            setFitOpen(false);
+          } catch (e: any) {
+            console.error("Select candidate failed:", e);
+            alert(e.message || "Failed to select candidate");
+          }
+          finally {
+    setSelectLoading(false);
+  }
+        }}
+        candidate={selectedCandidate ? toFitData(selectedCandidate) : null}
+        loading={selectLoading}
+        isAlreadySelected={!!selectedCandidate?.selected}
       />
     </div>
   );

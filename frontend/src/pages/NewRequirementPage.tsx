@@ -3,10 +3,22 @@ import { useNavigate } from "react-router-dom";
 import Button from "../components/ui/Button";
 import TagInput from "../components/ui/TagInput";
 import type { RequirementFormValues } from "../types";
+import { createRequirement, runSearch, API_BASE } from "../api/benchApi";
 
-const NewRequirementPage: React.FC = () => {
+type RequirementErrors = {
+  clientName?: string;
+  roleTitle?: string;
+  requiredSkills?: string;
+  minimumExperience?: string;
+  mandatoryCertifications?: string;
+  availabilityDate?: string;
+  summary?: string;
+};
+
+export const NewRequirementPage: React.FC = () => {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<RequirementErrors>({});
 
   const [form, setForm] = useState<RequirementFormValues>({
     clientName: "",
@@ -36,21 +48,77 @@ const NewRequirementPage: React.FC = () => {
       handleChange(field)(value as any);
     };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const validateForm = (): boolean => {
+    const newErrors: RequirementErrors = {};
+
+    if (!form.clientName.trim()) {
+      newErrors.clientName = "Client Name is required";
+    }
+    if (!form.roleTitle.trim()) {
+      newErrors.roleTitle = "Role Title is required";
+    }
+    if (!form.requiredSkills || form.requiredSkills.length === 0) {
+      newErrors.requiredSkills = "At least one skill is required";
+    }
+    if (form.minimumExperience === "" || Number(form.minimumExperience) < 0) {
+      newErrors.minimumExperience = "Minimum experience is required";
+    }
+    if (!form.mandatoryCertifications.trim()) {
+      newErrors.mandatoryCertifications =
+        "Mandatory certifications are required";
+    }
+    if (!form.availabilityDate) {
+      newErrors.availabilityDate = "Availability / Start Date is required";
+    }
+    if (!form.summary.trim()) {
+      newErrors.summary = "Requirement Summary is required";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;
 
+    if (!validateForm()) {
+      return; // do not submit if errors
+    }
+
     setIsSubmitting(true);
 
-    // Simulate AI processing delay, then navigate with state
-    setTimeout(() => {
+    try {
+      // 1. Create requirement
+      const created = await createRequirement(form);
+      const requirementId = created.requirement_id;
+
+      // 2. Run search for this requirement
+      const searchResult = await runSearch(requirementId, form);
+
+      // 3. Navigate to shortlist with real data
+      // 3. Fetch the persisted shortlist (has shortlist_item_id)
+      const shortlistRes = await fetch(
+        `${API_BASE}/shortlist/${requirementId}`,
+      );
+      const shortlistJson = await shortlistRes.json();
+      const persistedCandidates = shortlistJson.data.candidates;
+
       navigate("/shortlist", {
         state: {
-          requirement: form,
+          requirementId,
+          requirement: created.data,
+          matches: persistedCandidates,
+          count: persistedCandidates.length,
+          requirementStatus: "In Progress",
           submittedAt: new Date().toISOString(),
         },
       });
-    }, 1800);
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || "Something went wrong while submitting.");
+      setIsSubmitting(false);
+    }
   };
 
   const handleCancel = () => {
@@ -70,39 +138,39 @@ const NewRequirementPage: React.FC = () => {
     <div className="relative">
       {/* Full-page loading overlay while AI processes */}
       {isSubmitting && (
-  <div className="pointer-events-auto fixed inset-0 z-30 flex items-center justify-center bg-slate-900/40">
-    <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
-      <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-[color:var(--ig-blue)]">
-        Evergreen AI Matching
-      </div>
+        <div className="pointer-events-auto fixed inset-0 z-30 flex items-center justify-center bg-slate-900/40">
+          <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
+            <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-[color:var(--ig-blue)]">
+              Evergreen AI Matching
+            </div>
 
-      <p className="text-sm font-medium text-slate-900">
-        Analysing requirement and ranking bench candidates…
-      </p>
-      <p className="mt-1 text-xs text-slate-500">
-        This may take a few seconds as AI scans skills, experience, and certifications.
-      </p>
+            <p className="text-sm font-medium text-slate-900">
+              Analysing requirement and ranking bench candidates…
+            </p>
+            <p className="mt-1 text-xs text-slate-500">
+              This may take a few seconds as AI scans skills, experience, and
+              certifications.
+            </p>
 
-      {/* Custom circle loader */}
-      <div className="mt-6 flex flex-col items-center gap-3">
-        <div className="circle-loader">
-          <div />
-          <div />
-          <div />
-          <div />
-          <div />
-          <div />
-          <div />
-          <div />
+            {/* Custom circle loader */}
+            <div className="mt-6 flex flex-col items-center gap-3">
+              <div className="circle-loader">
+                <div />
+                <div />
+                <div />
+                <div />
+                <div />
+                <div />
+                <div />
+                <div />
+              </div>
+              <span className="text-xs text-slate-600">
+                Preparing shortlist view…
+              </span>
+            </div>
+          </div>
         </div>
-        <span className="text-xs text-slate-600">
-          Preparing shortlist view…
-        </span>
-      </div>
-    </div>
-  </div>
-)}
-
+      )}
 
       <form
         onSubmit={handleSubmit}
@@ -114,7 +182,8 @@ const NewRequirementPage: React.FC = () => {
             New Project Requirement
           </h2>
           <p className="text-xs text-slate-500">
-            Capture the client context so Evergreen can generate the best bench matches.
+            Capture the client context so Evergreen can generate the best bench
+            matches.
           </p>
         </header>
 
@@ -133,8 +202,18 @@ const NewRequirementPage: React.FC = () => {
               className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm placeholder-slate-400 focus:border-[color:var(--light-watermark)] focus:outline-none focus:ring-2 focus:ring-[color:var(--light-watermark)]"
               placeholder="e.g. Global Retail Corp"
               value={form.clientName}
-              onChange={handleInputChange("clientName")}
+              onChange={(e) => {
+                handleInputChange("clientName")(e);
+                if (errors.clientName) {
+                  setErrors((prev) => ({ ...prev, clientName: undefined }));
+                }
+              }}
             />
+            {errors.clientName && (
+              <p className="text-[11px] text-red-500 mt-0.5">
+                {errors.clientName}
+              </p>
+            )}
           </div>
 
           <div className="flex flex-col gap-1">
@@ -152,6 +231,11 @@ const NewRequirementPage: React.FC = () => {
               value={form.roleTitle}
               onChange={handleInputChange("roleTitle")}
             />
+            {errors.roleTitle && (
+              <p className="text-[11px] text-red-500 mt-0.5">
+                {errors.roleTitle}
+              </p>
+            )}
           </div>
         </section>
 
@@ -163,6 +247,11 @@ const NewRequirementPage: React.FC = () => {
             value={form.requiredSkills}
             onChange={(tags) => handleChange("requiredSkills")(tags)}
           />
+          {errors.requiredSkills && (
+            <p className="text-[11px] text-red-500 mt-0.5">
+              {errors.requiredSkills}
+            </p>
+          )}
 
           <div className="flex flex-col gap-1">
             <label
@@ -180,6 +269,11 @@ const NewRequirementPage: React.FC = () => {
               value={form.minimumExperience}
               onChange={handleInputChange("minimumExperience")}
             />
+            {errors.minimumExperience && (
+              <p className="text-[11px] text-red-500 mt-0.5">
+                {errors.minimumExperience}
+              </p>
+            )}
           </div>
         </section>
 
@@ -200,6 +294,12 @@ const NewRequirementPage: React.FC = () => {
               value={form.mandatoryCertifications}
               onChange={handleInputChange("mandatoryCertifications")}
             />
+            {errors.mandatoryCertifications && (
+              <p className="text-[11px] text-red-500 mt-0.5">
+                {errors.mandatoryCertifications}
+              </p>
+            )}
+
             <p className="text-[11px] text-slate-500">
               Comma-separated list. Used as hard filters in AI matching.
             </p>
@@ -219,6 +319,11 @@ const NewRequirementPage: React.FC = () => {
               value={form.availabilityDate}
               onChange={handleInputChange("availabilityDate")}
             />
+            {errors.availabilityDate && (
+              <p className="text-[11px] text-red-500 mt-0.5">
+                {errors.availabilityDate}
+              </p>
+            )}
           </div>
         </section>
 
@@ -237,15 +342,26 @@ const NewRequirementPage: React.FC = () => {
               className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm placeholder-slate-400 focus:border-[color:var(--light-watermark)] focus:outline-none focus:ring-2 focus:ring-[color:var(--light-watermark)]"
               placeholder="Describe the project, key responsibilities, tech stack, team context, and any constraints. This text will be embedded for AI matching."
               value={form.summary}
-              onChange={handleInputChange("summary")}
+              onChange={(e) => {
+                handleInputChange("summary")(e);
+                if (errors.summary) {
+                  setErrors((prev) => ({ ...prev, summary: undefined }));
+                }
+              }}
             />
+            {errors.summary && (
+              <p className="text-[11px] text-red-500 mt-0.5">
+                {errors.summary}
+              </p>
+            )}
           </div>
         </section>
 
         {/* Actions */}
         <section className="flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-[11px] text-slate-500">
-            Evergreen will embed this requirement and rank all eligible bench candidates in real time.
+            Evergreen will embed this requirement and rank all eligible bench
+            candidates in real time.
           </p>
           <div className="flex justify-end gap-2">
             <Button

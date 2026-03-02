@@ -25,6 +25,7 @@ export type BenchStatus = "Bench" | "Partial" | "Not Bench";
 
 export interface Candidate {
   id: string;
+  shortlistItemId?: string;
   rank: number;
   name: string;
   email: string;
@@ -37,6 +38,25 @@ export interface Candidate {
   gaps: string[];
   experienceSummary: string;
   certifications: string[];
+  skill_match_details?: Array<{
+    required_skill: string;
+    candidate_evidence: string;
+    confidence: number;
+  }>;
+  relevant_projects?: Array<{
+    project_name: string;
+    experience_summary: string;
+    role?: string;
+    duration_years?: number;
+  }>;
+  // Breakdown scores
+  skills_match?: number;
+  experience_match?: number;
+  availability_match?: number;
+  certifications_match?: number;
+  certification_details?: any;
+  experience_alignment?: any;
+  selected?: boolean;
 }
 
 export interface RequirementFormValues {
