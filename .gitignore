@@ -32,7 +32,7 @@ __pycache__/
 .env
 *.sqlite3
 *.db
-
+myenv/
 # ChromaDB vector storage
 chroma_data/
 *.bin
