@@ -1,3 +1,4 @@
+import React from "react";
 import {
   AreaChart,
   Area,
@@ -12,16 +13,24 @@ interface BenchSizeTrendChartProps {
   data: number[];
   labels: string[];
   current: number;
+  startDate: string;
+  endDate: string;
+  onDateRangeChange: (start: string, end: string) => void;
+  isLoading?: boolean;
 }
 
 const BenchSizeTrendChart: React.FC<BenchSizeTrendChartProps> = ({
   data,
   labels,
   current,
+  startDate,
+  endDate,
+  onDateRangeChange,
+  isLoading = false,
 }) => {
   const formattedData = labels.map((label: string, index: number) => ({
     day: label,
-    value: data[index],
+    value: data[index] ?? 0,
   }));
 
   return (
@@ -39,15 +48,17 @@ const BenchSizeTrendChart: React.FC<BenchSizeTrendChartProps> = ({
         style={{
           display: "flex",
           justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "20px",
+          alignItems: "flex-start",
+          marginBottom: "16px",
+          gap: "12px",
+          flexWrap: "wrap",
         }}
       >
         <div>
           <h2
             style={{
               margin: 0,
-              fontSize: "22px",
+              fontSize: "15px",
               fontWeight: 600,
               color: "#00283c",
             }}
@@ -56,27 +67,79 @@ const BenchSizeTrendChart: React.FC<BenchSizeTrendChartProps> = ({
           </h2>
           <p
             style={{
-              margin: "6px 0 0",
+              margin: "4px 0 0",
               color: "#6b7280",
-              fontSize: "14px",
+              fontSize: "12px",
             }}
           >
-            Track bench size movement over the last 7 days
+            Bench size movement · {startDate} to {endDate}
           </p>
         </div>
 
-        <div
-          style={{
-            background: "#FFD700",
-            color: "#00283c",
-            padding: "6px 14px",
-            borderRadius: "20px",
-            fontWeight: 600,
-            fontSize: "14px",
-            whiteSpace: "nowrap",
-          }}
-        >
-          Current: {current}
+        {/* Right side: date range picker + current badge */}
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+          {/* Date range inputs */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              background: "#f1f5f9",
+              borderRadius: "12px",
+              padding: "5px 12px",
+              opacity: isLoading ? 0.6 : 1,
+            }}
+          >
+            <input
+              type="date"
+              value={startDate}
+              max={endDate}
+              disabled={isLoading}
+              onChange={(e) => onDateRangeChange(e.target.value, endDate)}
+              style={{
+                border: "none",
+                background: "transparent",
+                fontSize: "12px",
+                fontWeight: 500,
+                color: "#00283c",
+                cursor: isLoading ? "wait" : "pointer",
+                outline: "none",
+              }}
+            />
+            <span style={{ color: "#6b7280", fontSize: "13px", userSelect: "none" }}>→</span>
+            <input
+              type="date"
+              value={endDate}
+              min={startDate}
+              max={new Date().toISOString().split("T")[0]}
+              disabled={isLoading}
+              onChange={(e) => onDateRangeChange(startDate, e.target.value)}
+              style={{
+                border: "none",
+                background: "transparent",
+                fontSize: "12px",
+                fontWeight: 500,
+                color: "#00283c",
+                cursor: isLoading ? "wait" : "pointer",
+                outline: "none",
+              }}
+            />
+          </div>
+
+          {/* Current count badge */}
+          <div
+            style={{
+              background: "#FFD700",
+              color: "#00283c",
+              padding: "5px 12px",
+              borderRadius: "20px",
+              fontWeight: 600,
+              fontSize: "13px",
+              whiteSpace: "nowrap",
+            }}
+          >
+            Current: {current}
+          </div>
         </div>
       </div>
 

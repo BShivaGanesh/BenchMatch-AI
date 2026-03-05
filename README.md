@@ -44,6 +44,9 @@ Create `.env` file in `backend/`:
 ```env
 NOMIC_API_KEY=your_nomic_api_key_here
 AZURE_SQL_SCHEMA=bench
+# Optional: set if your network uses corporate/self-signed TLS certificates
+# Example: C:\\certs\\corp-root-ca.pem
+NOMIC_CA_BUNDLE=
 ```
 
 Notes:
@@ -129,6 +132,10 @@ npm run preview
 - **`pyodbc` / SQL driver errors**: Ensure ODBC Driver 18 is installed.
 - **Auth/login failures to Azure SQL**: Verify your Entra ID account has DB access.
 - **Embedding/search errors**: Check `NOMIC_API_KEY` in `backend/.env`.
+- **`CERTIFICATE_VERIFY_FAILED` to `api-atlas.nomic.ai`**:
+	- Export your corporate root/intermediate CA cert as `.pem`
+	- Set `NOMIC_CA_BUNDLE` in `backend/.env` to that file path
+	- Restart backend and run ingestion again
 - **CORS/connection issues in UI**: Make sure backend is running on `http://localhost:8000`.
 
 ---

@@ -17,63 +17,63 @@ const initialKpis = {
 };
 
 const initialBenchTrend = {
-  trend: [56, 52, 49, 47, 45, 40, 42],
-  labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-  current: 42,
+  trend: [] as number[],
+  labels: [] as string[],
+  current: 0,
 };
 
 export const DashboardPage: React.FC = () => {
   const [requirements, setRequirements] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);          // table + page loading
+  const [isLoading, setIsLoading] = useState(true);
   const [kpiData, setKpiData] = useState(initialKpis);
   const [benchTrendData, setBenchTrendData] = useState(initialBenchTrend);
+  const [startDate, setStartDate] = useState(() => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - 6);
+    return d.toISOString().split("T")[0];
+  });
+  const [endDate, setEndDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [trendLoading, setTrendLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("All");
   const [searchRole, setSearchRole] = useState("");
   const [sortBy, setSortBy] = useState<"date" | "candidates">("date");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
-  const [kpisLoading, setKpisLoading] = useState(true);      // KPIs loading
+  const kpisLoading = isLoading;
   const navigate = useNavigate();
 
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
-      setKpisLoading(true);
-
       await Promise.allSettled([
-        fetchKpis(),
-        fetchBenchTrend(),
+        fetchDashboardAnalytics(),
         fetchRequirements(),
       ]);
-
       setIsLoading(false);
-      setKpisLoading(false);
     };
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchKpis = async () => {
+  const fetchDashboardAnalytics = async (start = startDate, end = endDate) => {
+    setTrendLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/analytics/kpis`);
+      const res = await fetch(`${API_BASE}/analytics/dashboard?start_date=${start}&end_date=${end}`);
       const json = await res.json();
       if (json.status === "success" && json.data) {
-        setKpiData(json.data);
+        setKpiData(json.data.kpis);
+        setBenchTrendData(json.data.bench_trend);
       }
     } catch (error) {
-      console.error("Failed to fetch KPI analytics:", error);
+      console.error("Failed to fetch dashboard analytics:", error);
+    } finally {
+      setTrendLoading(false);
     }
   };
 
-  const fetchBenchTrend = async () => {
-    try {
-      const res = await fetch(`${API_BASE}/analytics/bench-trend`);
-      const json = await res.json();
-      if (json.status === "success" && json.data) {
-        setBenchTrendData(json.data);
-      }
-    } catch (error) {
-      console.error("Failed to fetch bench trend:", error);
-    }
+  const handleDateRangeChange = (start: string, end: string) => {
+    setStartDate(start);
+    setEndDate(end);
+    fetchDashboardAnalytics(start, end);
   };
 
   const fetchRequirements = async () => {
@@ -241,6 +241,10 @@ export const DashboardPage: React.FC = () => {
           data={benchTrendData.trend}
           labels={benchTrendData.labels}
           current={benchTrendData.current}
+          startDate={startDate}
+          endDate={endDate}
+          onDateRangeChange={handleDateRangeChange}
+          isLoading={trendLoading}
         />
       </section>
 

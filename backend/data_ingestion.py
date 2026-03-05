@@ -65,10 +65,16 @@ engine = None
 
 
 def get_engine():
-    """Get or create the SQLAlchemy engine."""
+    """Get or create the SQLAlchemy engine with connection pooling."""
     global engine
     if engine is None:
-        engine = create_engine(AZURE_SQL_CONN_STR)
+        engine = create_engine(
+            AZURE_SQL_CONN_STR,
+            pool_size=5,
+            max_overflow=10,
+            pool_pre_ping=True,
+            pool_recycle=1800,
+        )
     return engine
 
 
@@ -112,10 +118,38 @@ def load_bench_status():
     """
     try:
         db_engine = get_engine()
-        bench_df = pd.read_sql(
-            f"SELECT employee_id, status FROM {AZURE_SQL_SCHEMA}.bench_status",
-            db_engine,
-        )
+        try:
+            bench_df = pd.read_sql(
+                f"SELECT employee_id, status, allocated_date, allocated_to_requirement_id FROM {AZURE_SQL_SCHEMA}.bench_status",
+                db_engine,
+            )
+        except Exception:
+            bench_df = pd.read_sql(
+                f"SELECT employee_id, status FROM {AZURE_SQL_SCHEMA}.bench_status",
+                db_engine,
+            )
+
+        # Normalize status values for consistent filtering (e.g., "Active" -> "active").
+        bench_df["status"] = bench_df["status"].astype(str).str.strip().str.lower()
+
+        if "allocated_to_requirement_id" in bench_df.columns:
+            bench_df["allocated_to_requirement_id"] = (
+                bench_df["allocated_to_requirement_id"].astype(str).str.strip()
+            )
+
+        # If duplicate employee rows exist, keep the latest status record.
+        if "allocated_date" in bench_df.columns:
+            bench_df = (
+                bench_df.sort_values(
+                    by=["employee_id", "allocated_date"],
+                    ascending=[True, False],
+                    na_position="last",
+                )
+                .drop_duplicates(subset=["employee_id"], keep="first")
+            )
+        else:
+            bench_df = bench_df.drop_duplicates(subset=["employee_id"], keep="last")
+
         return bench_df.set_index("employee_id")
 
     except Exception as e:
@@ -262,6 +296,8 @@ def ingest():
         logger.error(f"Ingestion pipeline failed: {e}")
         raise
 
+
+def parse_query(query_text):
     """Parse query to extract skills, experience, certifications."""
     import re
 
@@ -523,6 +559,7 @@ def search_employees(
     # Set defaults
     required_skills = required_skills or []
     required_certs = required_certs or []
+    top_n = top_n if top_n is not None else 5
 
     # Normalize inputs (lowercase for matching)
     required_skills = [s.lower().strip() for s in required_skills]
@@ -556,7 +593,14 @@ def search_employees(
     # RETRIEVE CANDIDATES WITH EMBEDDINGS
     # ---------------------------
     client = chromadb.PersistentClient(path=CHROMA_DIR)
-    collection = client.get_collection(COLLECTION_NAME)
+
+    # Use get_or_create_collection for compatibility across Chroma versions.
+    # Some versions raise different exception types/messages for missing collections.
+    collection = client.get_or_create_collection(
+        name=COLLECTION_NAME, metadata={"hnsw:space": "cosine"}
+    )
+
+
 
     query_embedding = get_embedding(embedding_query)
 
@@ -585,16 +629,29 @@ def search_employees(
             dropped_missing += 1
             continue
 
-        # Extract bench status (handle Series case)
+        # Extract normalized bench status
         status_series = bench_df.loc[emp_id]["status"]
         if isinstance(status_series, pd.Series):
-            status = status_series.iloc[0]
+            status = str(status_series.iloc[-1]).strip().lower()
         else:
-            status = status_series
+            status = str(status_series).strip().lower()
 
-        # BENCH RULE: Only include "active" bench employees (available on bench)
-        # "active" = on bench and available for assignment
-        if status != "active":
+        # BENCH RULE: Only include "active" and not-already-allocated employees.
+        allocated_to_requirement = ""
+        if "allocated_to_requirement_id" in bench_df.columns:
+            alloc_series = bench_df.loc[emp_id]["allocated_to_requirement_id"]
+            if isinstance(alloc_series, pd.Series):
+                allocated_to_requirement = str(alloc_series.iloc[-1]).strip()
+            else:
+                allocated_to_requirement = str(alloc_series).strip()
+
+        is_already_allocated = (
+            allocated_to_requirement != ""
+            and allocated_to_requirement.lower() != "none"
+            and allocated_to_requirement.lower() != "nan"
+        )
+
+        if status != "active" or is_already_allocated:
             dropped_not_eligible += 1
             continue
 

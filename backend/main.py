@@ -6,8 +6,10 @@ from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 import json
 import uuid
-from datetime import datetime
+from datetime import datetime, date, timedelta
 from sqlalchemy import text
+
+import time
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -360,7 +362,7 @@ def search(request: SearchRequest):
         }
     except Exception as e:
         logger.error(f"Search error: {e}")
-        return {"status": "failed", "error": str(e)}
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ========================================
@@ -583,82 +585,253 @@ def get_breakdown(requirement_id: str, employee_id: str):
 
 
 @app.get("/analytics/bench-trend")
-def get_bench_trend():
+def get_bench_trend(start_date: Optional[str] = None, end_date: Optional[str] = None):
     """
-    GET /analytics/bench-trend
-    Fetch bench size trend data for the last 7 days.
-    
+    GET /analytics/bench-trend?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD
+    Fetch bench size trend grouped by month for the given date range.
+
+    Query params:
+    - start_date: Start date (YYYY-MM-DD). Defaults to 6 months ago.
+    - end_date:   End date   (YYYY-MM-DD). Defaults to today.
+
     Returns:
-    - trend: Array of 7 points representing bench size for past 7 days
-    - labels: Array of day names (Mon, Tue, Wed, Thu, Fri, Sat, Sun)
-    - current: Current bench size (today)
+    - trend:   Array of bench-size estimates per month (oldest → newest)
+    - labels:  Array of month names (e.g. "Sep", "Oct", ...)
+    - current: Current bench count
     """
+    today = date.today()
+
+    # Parse or default end_date
+    if end_date:
+        try:
+            end_dt = datetime.strptime(end_date, "%Y-%m-%d").date()
+        except ValueError:
+            end_dt = today
+    else:
+        end_dt = today
+
+    # Parse or default start_date (6 months ago)
+    if start_date:
+        try:
+            start_dt = datetime.strptime(start_date, "%Y-%m-%d").date()
+        except ValueError:
+            start_dt = None
+    else:
+        start_dt = None
+
+    if start_dt is None:
+        # Roll back 6 months manually (avoids dateutil dependency)
+        m = today.month - 6
+        y = today.year
+        while m <= 0:
+            m += 12
+            y -= 1
+        start_dt = today.replace(year=y, month=m, day=1)
+
+    # Build ordered list of first-of-month dates: start_dt.replace(day=1) → end_dt.replace(day=1)
+    months_list: list = []
+    cur = start_dt.replace(day=1)
+    end_first = end_dt.replace(day=1)
+    while cur <= end_first:
+        months_list.append(cur)
+        if cur.month == 12:
+            cur = cur.replace(year=cur.year + 1, month=1)
+        else:
+            cur = cur.replace(month=cur.month + 1)
+
+    total_months = len(months_list)
+    fmt = "%b %Y" if total_months > 12 else "%b"
+    labels = [m.strftime(fmt) for m in months_list]
+
+    current_count = 0
     try:
-        labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-        trend_data = []
-        
-        # Get current bench size (today)
-        current_bench_query = """
+        bench_result = fetch_query("""
             SELECT COUNT(*) as total
             FROM bench.bench_status
             WHERE status = 'active' OR status = 'bench'
-        """
-        current_bench = fetch_query(current_bench_query)
-        current_count = current_bench[0].get("total", 0) if current_bench else 0
-        
-        # Calculate trend: for each day, add back the allocations that happened that day
-        # This shows the bench size BEFORE those allocations were made
-        trend_query = """
-            SELECT 
-                DATEDIFF(day, run_timestamp, GETDATE()) as days_ago,
-                COUNT(*) as placements_count
-            FROM bench.match_history
-            WHERE run_timestamp >= DATEADD(day, -6, GETDATE())
-            AND status = 'Matched'
-            GROUP BY DATEDIFF(day, run_timestamp, GETDATE())
-        """
-        
-        placements_by_day = fetch_query(trend_query)
-        
-        # Build a map of placements per day
-        placement_map = {}
-        for row in placements_by_day:
-            days_ago = row.get("days_ago", 0)
-            count = row.get("placements_count", 0)
-            placement_map[days_ago] = count
-        
-        # Calculate trend for last 7 days
-        # Start from 6 days ago to today
-        cumulative_placements = 0
-        for day_offset in range(6, -1, -1):
-            # Add placements from this day onwards to get the size before today's allocations
-            placements_today_and_after = sum([
-                placement_map.get(offset, 0) for offset in range(0, day_offset + 1)
-            ])
-            estimated_bench_size = current_count + placements_today_and_after
-            trend_data.append(estimated_bench_size)
-        
-        logger.info(f"✓ Bench trend calculated - Current: {current_count}, Trend: {trend_data}")
+        """)
+        current_count = bench_result[0].get("total", 0) if bench_result else 0
+    except Exception as e:
+        logger.error(f"bench-trend: bench count query failed: {e}")
 
-        return {
-            "status": "success",
-            "data": {
+    placement_map: dict = {}
+    try:
+        placements_result = fetch_query("""
+            SELECT
+                YEAR(run_timestamp)  AS yr,
+                MONTH(run_timestamp) AS mo,
+                COUNT(*)             AS placements_count
+            FROM bench.match_history
+            WHERE run_timestamp >= :start_dt
+              AND run_timestamp < DATEADD(day, 1, :end_dt)
+              AND status = 'Matched'
+            GROUP BY YEAR(run_timestamp), MONTH(run_timestamp)
+        """, {"start_dt": start_dt.isoformat(), "end_dt": end_dt.isoformat()})
+        placement_map = {(r["yr"], r["mo"]): r["placements_count"] for r in placements_result}
+    except Exception as e:
+        logger.error(f"bench-trend: placements query failed: {e}")
+
+    # For each month M in the range, estimated bench = current_count + placements from M onward
+    # (placements that occurred after M reduced the bench from its current value)
+    trend_data = [
+        current_count + sum(placement_map.get((m.year, m.month), 0) for m in months_list[i:])
+        for i in range(total_months)
+    ]
+
+    logger.info(f"✓ bench-trend ({start_dt}..{end_dt}) current={current_count} labels={labels} trend={trend_data}")
+
+    return {
+        "status": "success",
+        "data": {
+            "trend": trend_data,
+            "labels": labels,
+            "current": current_count,
+        },
+    }
+
+
+# ─────────────────────────────────────────────────────────────
+# COMBINED DASHBOARD ANALYTICS (single DB connection + TTL cache)
+# ─────────────────────────────────────────────────────────────
+_dashboard_cache: dict = {}
+DASHBOARD_CACHE_TTL = 60  # seconds
+
+
+@app.get("/analytics/dashboard")
+def get_analytics_dashboard(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+):
+    """
+    GET /analytics/dashboard?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD
+    Returns KPIs + bench trend in a single DB connection with 60s TTL cache.
+    """
+    today = date.today()
+
+    # Resolve date range
+    try:
+        end_dt = datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else today
+    except ValueError:
+        end_dt = today
+    try:
+        start_dt = datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
+    except ValueError:
+        start_dt = None
+    if start_dt is None:
+        m, y = today.month - 6, today.year
+        while m <= 0:
+            m += 12
+            y -= 1
+        start_dt = today.replace(year=y, month=m, day=1)
+
+    cache_key = f"{start_dt}|{end_dt}"
+    cached = _dashboard_cache.get(cache_key)
+    if cached and (time.time() - cached["ts"]) < DASHBOARD_CACHE_TTL:
+        logger.info(f"✓ dashboard cache hit ({cache_key})")
+        return cached["data"]
+
+    # Build month list for trend labels
+    months_list: list = []
+    cur = start_dt.replace(day=1)
+    end_first = end_dt.replace(day=1)
+    while cur <= end_first:
+        months_list.append(cur)
+        cur = cur.replace(month=cur.month + 1) if cur.month < 12 else cur.replace(year=cur.year + 1, month=1)
+    total_months = len(months_list)
+    fmt = "%b %Y" if total_months > 12 else "%b"
+    labels = [m.strftime(fmt) for m in months_list]
+
+    # ── All queries in ONE connection ──────────────────────────────────
+    total_bench = 0
+    avg_days = 0
+    placements_30d = 0
+    highest_skill = "N/A"
+    placement_map: dict = {}
+
+    try:
+        engine = get_engine()
+        with engine.connect() as conn:
+            # 1. Bench count
+            r = conn.execute(text("""
+                SELECT COUNT(*) as total FROM bench.bench_status
+                WHERE status = 'active' OR status = 'bench'
+            """))
+            row = r.fetchone()
+            total_bench = row[0] if row else 0
+
+            # 2. Avg bench days
+            r = conn.execute(text("""
+                SELECT ISNULL(AVG(DATEDIFF(day, allocated_date, GETDATE())), 0) as avg_days
+                FROM bench.bench_status
+                WHERE status = 'allocated' AND allocated_date IS NOT NULL
+            """))
+            row = r.fetchone()
+            avg_days = int(row[0]) if row and row[0] else 0
+
+            # 3. Placements last 30 days
+            r = conn.execute(text("""
+                SELECT COUNT(*) as total FROM bench.match_history
+                WHERE run_timestamp >= DATEADD(day, -30, GETDATE())
+                  AND status = 'Matched'
+            """))
+            row = r.fetchone()
+            placements_30d = row[0] if row else 0
+
+            # 4. Top skill from recent requirements
+            r = conn.execute(text("""
+                SELECT TOP 20 required_skills FROM bench.client_requirements
+                WHERE required_skills IS NOT NULL AND required_skills != ''
+                ORDER BY submitted_date DESC
+            """))
+            skill_count: dict = {}
+            for rec in r.fetchall():
+                for s in str(rec[0]).split(","):
+                    s = s.strip()
+                    if s:
+                        skill_count[s] = skill_count.get(s, 0) + 1
+            highest_skill = max(skill_count, key=skill_count.get) if skill_count else "React + Node"
+
+            # 5. Monthly placements for trend
+            r = conn.execute(
+                text("""
+                    SELECT YEAR(run_timestamp) AS yr, MONTH(run_timestamp) AS mo,
+                           COUNT(*) AS cnt
+                    FROM bench.match_history
+                    WHERE run_timestamp >= :s AND run_timestamp < DATEADD(day, 1, :e)
+                      AND status = 'Matched'
+                    GROUP BY YEAR(run_timestamp), MONTH(run_timestamp)
+                """),
+                {"s": start_dt.isoformat(), "e": end_dt.isoformat()},
+            )
+            placement_map = {(row[0], row[1]): row[2] for row in r.fetchall()}
+
+    except Exception as e:
+        logger.error(f"dashboard query error: {e}")
+
+    trend_data = [
+        total_bench + sum(placement_map.get((m.year, m.month), 0) for m in months_list[i:])
+        for i in range(total_months)
+    ]
+
+    result = {
+        "status": "success",
+        "data": {
+            "kpis": {
+                "total_bench_employees": total_bench,
+                "avg_bench_days": avg_days,
+                "placements_last_30_days": placements_30d,
+                "highest_demand_skill": highest_skill,
+            },
+            "bench_trend": {
                 "trend": trend_data,
                 "labels": labels,
-                "current": current_count,
+                "current": total_bench,
             },
-        }
-    except Exception as e:
-        logger.error(f"Error retrieving bench trend: {e}")
-        # Return current count as constant trend
-        return {
-            "status": "success",
-            "data": {
-                "trend": [82, 82, 82, 82, 82, 82, 82],
-                "labels": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-                "current": 82,
-            },
-        }
+        },
+    }
+    _dashboard_cache[cache_key] = {"ts": time.time(), "data": result}
+    logger.info(f"✓ dashboard ({start_dt}..{end_dt}) bench={total_bench} skill={highest_skill}")
+    return result
 
 
 @app.get("/analytics/kpis")
@@ -774,8 +947,8 @@ def get_recent_match_history(limit: int = 5):
     Recent Match History for dashboard (last 5 requirements)
     """
     try:
-        query = """
-            SELECT TOP (:limit)
+        query = f"""
+            SELECT TOP ({int(limit)})
                 mh.requirement_id,
                 cr.client_name,
                 cr.role_title,
@@ -786,7 +959,7 @@ def get_recent_match_history(limit: int = 5):
             JOIN bench.client_requirements cr ON mh.requirement_id = cr.requirement_id
             ORDER BY mh.run_timestamp DESC
         """
-        rows = fetch_query(query, {"limit": limit})
+        rows = fetch_query(query)
         return {"status": "success", "data": rows}
     except Exception as e:
         logger.error(f"Error retrieving match history: {e}")
