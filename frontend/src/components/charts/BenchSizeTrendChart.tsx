@@ -1,119 +1,142 @@
-import React from "react";
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+} from "recharts";
 
 interface BenchSizeTrendChartProps {
   data: number[];
-  labels?: string[];
+  labels: string[];
+  current: number;
 }
 
 const BenchSizeTrendChart: React.FC<BenchSizeTrendChartProps> = ({
   data,
   labels,
+  current,
 }) => {
-  if (!data || data.length < 2) return null;
-
-  const first = data[0];
-  const last = data[data.length - 1];
-
-  const rawChange = ((last - first) / (first || 1)) * 100;
-  const isPositive = last < first;
-  const changeAbs = Math.abs(rawChange);
-const changeColor = isPositive
-    ? "text-[#00D6F2]" 
-    : "text-[#DB005A]"; 
-
-const pillBg = isPositive
-    ? "bg-[#00D6F2]/10" 
-    : "bg-[#DB005A]/10";
-  const minVal = Math.min(...data);
-  const maxVal = Math.max(...data);
-  const range = maxVal - minVal || 1;
-
-  const points = data.map((value, index) => {
-    const x = (index / (data.length - 1)) * 100;
-    const normalized = (value - minVal) / range;
-    const y = 40 - normalized * 26 - 8;
-    return { x, y };
-  });
-
-  const areaPath = [
-    "M 0 40",
-    ...points.map((p, i) => `${i === 0 ? "L" : "L"} ${p.x.toFixed(2)} ${p.y.toFixed(2)}`),
-    "L 100 40 Z",
-  ].join(" ");
-
-  const linePoints = points
-    .map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`)
-    .join(" ");
+  const formattedData = labels.map((label: string, index: number) => ({
+    day: label,
+    value: data[index],
+  }));
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-5 hover:shadow-md transition-shadow">
-      <div className="flex items-start justify-between gap-3">
+    <div
+      style={{
+        background: "#ffffff",
+        borderRadius: "16px",
+        padding: "24px",
+        boxShadow: "0 8px 24px rgba(0,0,0,0.06)",
+        border: "1px solid #e5e7eb",
+      }}
+    >
+      {/* Header */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: "20px",
+        }}
+      >
         <div>
-          <h2 className="text-sm font-semibold text-[color:var(--ig-blue)]">
+          <h2
+            style={{
+              margin: 0,
+              fontSize: "22px",
+              fontWeight: 600,
+              color: "#00283c",
+            }}
+          >
             Bench Size Trend
           </h2>
-          <p className="text-[11px] text-slate-500">
-            Last {data.length} days · lower bench is better
-          </p>
-        </div>
-        <div className="text-right">
-          <p className="text-[11px] text-slate-500">Current bench</p>
-          <p className="text-xl font-semibold text-[color:var(--ig-blue)]">
-            {last}
-          </p>
-          <div
-            className={`mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${pillBg} ${changeColor}`}
+          <p
+            style={{
+              margin: "6px 0 0",
+              color: "#6b7280",
+              fontSize: "14px",
+            }}
           >
-            <span>{isPositive ? "↓" : "↑"}</span>
-            <span>{changeAbs.toFixed(1)}%</span>
-            <span className="text-[10px] text-slate-500">
-              vs start
-            </span>
-          </div>
+            Track bench size movement over the last 7 days
+          </p>
+        </div>
+
+        <div
+          style={{
+            background: "#FFD700",
+            color: "#00283c",
+            padding: "6px 14px",
+            borderRadius: "20px",
+            fontWeight: 600,
+            fontSize: "14px",
+            whiteSpace: "nowrap",
+          }}
+        >
+          Current: {current}
         </div>
       </div>
 
-      <div className="mt-4 h-40 w-full">
-        <svg viewBox="0 0 100 40" className="h-full w-full">
-          {/* grid */}
-          <g stroke="#e2e8f0" strokeWidth="0.25">
-            {[10, 20, 30].map((y) => (
-              <line key={y} x1="0" x2="100" y1={y} y2={y} />
-            ))}
-          </g>
-          <defs>
-            <linearGradient id="benchTrendArea" x1="0" y1="0" x2="0" y2="1">
-              <stop
-                offset="0%"
-                stopColor={isPositive ? "#00D6F2" : "#db005a"}
-                stopOpacity={0.3}
-              />
-              <stop
-                offset="100%"
-                stopColor={isPositive ? "#00D6F2" : "#db005a"}
-                stopOpacity={0}
-              />
-            </linearGradient>
-          </defs>
-          <path d={areaPath} fill="url(#benchTrendArea)" stroke="none" />
-          <polyline
-            fill="none"
-            stroke={isPositive ? "#00D6F2" : "#DB005A"}
-            strokeWidth={1.8}
-            strokeLinejoin="round"
-            strokeLinecap="round"
-            points={linePoints}
-          />
-        </svg>
-      </div>
+      {/* Chart */}
+      <div style={{ width: "100%", height: 300 }}>
+        <ResponsiveContainer>
+          <AreaChart data={formattedData}>
+            <defs>
+              <linearGradient id="benchGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#00D6F2" stopOpacity={0.4} />
+                <stop offset="95%" stopColor="#00D6F2" stopOpacity={0.05} />
+              </linearGradient>
+            </defs>
 
-      {labels && labels.length === data.length && (
-        <div className="mt-1 flex justify-between text-[10px] text-slate-400">
-          {labels.map((l) => (
-            <span key={l}>{l}</span>
-          ))}
-        </div>
-      )}
+            <CartesianGrid
+              stroke="#e5e7eb"
+              strokeDasharray="3 3"
+              vertical={false}
+            />
+
+            <XAxis dataKey="day" stroke="#6b7280" tick={{ fontSize: 12 }} />
+
+            <YAxis
+              stroke="#6b7280"
+              tick={{ fontSize: 12 }}
+              allowDecimals={false}
+            />
+
+            <Tooltip
+              contentStyle={{
+                backgroundColor: "#ffffff",
+                border: "1px solid #e5e7eb",
+                borderRadius: "10px",
+                boxShadow: "0 4px 14px rgba(0,0,0,0.08)",
+              }}
+              labelStyle={{ color: "#00283c", fontWeight: 600 }}
+            />
+
+            <Area
+              type="monotone"
+              dataKey="value"
+              stroke="#00D6F2"
+              strokeWidth={3}
+              fill="url(#benchGradient)"
+              dot={{
+                r: 4,
+                stroke: "#00D6F2",
+                strokeWidth: 2,
+                fill: "#ffffff",
+              }}
+              activeDot={{
+                r: 6,
+                fill: "#db005a",
+                stroke: "#ffffff",
+                strokeWidth: 2,
+              }}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 };

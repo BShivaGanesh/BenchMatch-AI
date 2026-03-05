@@ -570,9 +570,9 @@ const SkillsTab: React.FC<TabProps> = ({ candidate }) => {
                   <span className="text-xs font-semibold text-slate-900">
                     {p.projectName}
                   </span>
-                  <span className="text-[11px] text-slate-500">
+                  {/* <span className="text-[11px] text-slate-500">
                     {p.years} yrs
-                  </span>
+                  </span> */}
                 </div>
                 <p className="text-[11px] text-slate-600">{p.role}</p>
                 <p className="mt-1 text-[11px] leading-relaxed text-slate-700">
@@ -671,12 +671,12 @@ const CertsTab: React.FC<CertsTabProps> = ({
             </span>
             <span className="text-[11px] text-slate-600">{benchLabel}</span>
           </div>
-          <div className="text-[11px] text-slate-500">
+          {/* <div className="text-[11px] text-slate-500">
             On bench since{" "}
             <span className="font-medium">
               {candidate.availability.sinceDate}
             </span>
-          </div>
+          </div> */}
         </div>
         <p className="mt-1 text-[11px] text-slate-500">
           Use this information to coordinate start dates, overlap with existing

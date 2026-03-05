@@ -24,22 +24,32 @@ const initialBenchTrend = {
 
 export const DashboardPage: React.FC = () => {
   const [requirements, setRequirements] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);          // table + page loading
   const [kpiData, setKpiData] = useState(initialKpis);
   const [benchTrendData, setBenchTrendData] = useState(initialBenchTrend);
   const [statusFilter, setStatusFilter] = useState<string>("All");
   const [searchRole, setSearchRole] = useState("");
   const [sortBy, setSortBy] = useState<"date" | "candidates">("date");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [kpisLoading, setKpisLoading] = useState(true);      // KPIs loading
   const navigate = useNavigate();
 
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
-      await Promise.allSettled([fetchKpis(), fetchBenchTrend(), fetchRequirements()]);
+      setKpisLoading(true);
+
+      await Promise.allSettled([
+        fetchKpis(),
+        fetchBenchTrend(),
+        fetchRequirements(),
+      ]);
+
       setIsLoading(false);
+      setKpisLoading(false);
     };
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchKpis = async () => {
@@ -88,6 +98,8 @@ export const DashboardPage: React.FC = () => {
       description: "Currently available for deployment",
       target: 30,
       period: "Last 7 days",
+      isLoading: kpisLoading,
+      loaderColor: "text-[#00283c]",
     },
     {
       title: "Avg. Bench Time (Days)",
@@ -99,27 +111,33 @@ export const DashboardPage: React.FC = () => {
       description: "Average days on bench across employees",
       target: 14,
       period: "Rolling 30 days",
+      isLoading: kpisLoading,
+      loaderColor: "text-[#00D6F2]",
     },
     {
       title: "Total Placements (Last 30 Days)",
       value: kpiData.placements_last_30_days,
       change: 28.6,
       icon: Activity,
-      color: "text-[#56e13b]",
-      bgColor: "bg-emerald-50",
+      color: "text-[#FFD700]",
+      bgColor: "bg-yellow-50",
       description: "Bench to client project conversions",
       target: 40,
       period: "Last 30 days",
+      isLoading: kpisLoading,
+      loaderColor: "text-[#FFD700]",
     },
     {
       title: "Highest Demand Skill",
       value: kpiData.highest_demand_skill,
       change: 0,
       icon: Zap,
-      color: "text-[#FFD700]",
-      bgColor: "bg-yellow-50",
+      color: "text-[#db005a]",
+      bgColor: "bg-red-50",
       description: "Most requested in active client requirements",
       period: "Current month",
+      isLoading: kpisLoading,
+      loaderColor: "text-[#db005a]",
     },
   ];
 
@@ -157,8 +175,8 @@ export const DashboardPage: React.FC = () => {
             row.status === "Open"
               ? "rounded-full bg-[color:var(--highlight-yellow)]/15 px-2 py-0.5 text-[11px] font-medium text-[color:var(--highlight-yellow)]"
               : row.status === "In Progress"
-                ? "rounded-full bg-sky-100 px-2 py-0.5 text-[11px] font-medium text-sky-700"
-                : "rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700"
+              ? "rounded-full bg-sky-100 px-2 py-0.5 text-[11px] font-medium text-sky-700"
+              : "rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700"
           }
         >
           {row.status}
@@ -217,20 +235,13 @@ export const DashboardPage: React.FC = () => {
             Monitor bench supply, placement velocity, and emerging skill gaps in
             real time.
           </p>
-          <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
-            <span className="rounded-full bg-blue-50 px-3 py-1 font-medium text-[#00D6F2]">
-              Bench health: Stable
-            </span>
-            <span className="rounded-full bg-blue-50 px-3 py-1 font-medium text-[#FFD700]">
-              Hot skill: React + Node
-            </span>
-            <span className="rounded-full bg-emerald-50 px-3 py-1 text-[#db005a]">
-              Last refresh: 2 min ago
-            </span>
-          </div>
         </div>
 
-        <BenchSizeTrendChart data={benchTrendData.trend} labels={benchTrendData.labels} />
+        <BenchSizeTrendChart
+          data={benchTrendData.trend}
+          labels={benchTrendData.labels}
+          current={benchTrendData.current}
+        />
       </section>
 
       {/* KPI cards */}

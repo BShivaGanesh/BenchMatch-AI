@@ -3,15 +3,15 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Loader,
-} from "lucide-react"; 
+} from "lucide-react";
 
 export interface KpiCardProps {
   title: string;
   value: string | number;
-  change: number; 
+  change: number;
   icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
-  color: string;   
-  bgColor: string; 
+  color: string;
+  bgColor: string;
   description: string;
   target?: number;
   period: string;
@@ -35,7 +35,9 @@ const KpiCard: React.FC<KpiCardProps> = ({
   const isPositive = change >= 0;
   const TrendIcon = isPositive ? ArrowUpRight : ArrowDownRight;
   const numericValue =
-    typeof value === "number" ? value : Number(value.toString().replace(/,/g, "")) || 0;
+    typeof value === "number"
+      ? value
+      : Number(value.toString().replace(/,/g, "")) || 0;
   const progressPercentage = target
     ? Math.min((numericValue / target) * 100, 100)
     : 0;
@@ -49,7 +51,9 @@ const KpiCard: React.FC<KpiCardProps> = ({
 
       {/* Header */}
       <div className="relative z-10 mb-3 flex items-start justify-between">
-        <div className={`rounded-xl ${bgColor} p-2.5 transition-transform duration-300 group-hover:scale-110`}>
+        <div
+          className={`rounded-xl ${bgColor} p-2.5 transition-transform duration-300 group-hover:scale-110`}
+        >
           <Icon className={`h-5 w-5 ${color}`} />
         </div>
 
@@ -75,9 +79,11 @@ const KpiCard: React.FC<KpiCardProps> = ({
 
       {/* Value + text */}
       <div className="relative z-10 mb-3 space-y-1.5">
-        <h3 className="text-2xl font-bold text-[color:var(--ig-blue)] transition-colors group-hover:text-[#003d54]">
+        <h3 className="flex items-center gap-2 text-2xl font-bold text-[color:var(--ig-blue)] transition-colors group-hover:text-[#003d54]">
           {isLoading ? (
-            <span className="text-slate-300">---</span>
+            <Loader
+              className={`h-6 w-6 animate-spin ${loaderColor}`}
+            />
           ) : typeof value === "number" ? (
             value.toLocaleString()
           ) : (
@@ -88,7 +94,7 @@ const KpiCard: React.FC<KpiCardProps> = ({
         <p className="text-xs text-slate-500">{description}</p>
       </div>
 
-      {/* Progress to target (optional) */}
+      {/* Progress to target */}
       {target && (
         <div className="mb-3">
           <div className="mb-1 flex items-center justify-between">

@@ -8,8 +8,6 @@ import CandidateFitModal from "../components/modals/CandidateFitModal";
 import type { Candidate } from "../types";
 import { getCandidateBreakdown, API_BASE } from "../api/benchApi";
 import DotsIcon from "../assets/IG_Whte.jpg";
-import IgBackground from "../assets/image.png";
-import { API_BASE } from "../api/benchApi";
 
 type ShortlistLocationState = {
   requirementId: string;
@@ -18,7 +16,7 @@ type ShortlistLocationState = {
     client_name: string;
     role_title: string;
     required_skills: string[];
-    minimum_experience: number;
+    min_experience: number;
     mandatory_certifications: string[];
     availability_date: string | null;
     requirement_summary: string;
@@ -59,7 +57,7 @@ const CandidateShortlistPage: React.FC = () => {
         clientName: state.requirement.client_name,
         roleTitle: state.requirement.role_title,
         requiredSkills: state.requirement.required_skills || [],
-        minimumExperience: state.requirement.minimum_experience || 0,
+        minimumExperience: state.requirement.min_experience || 0,
         mandatoryCertifications: (
           state.requirement.mandatory_certifications || []
         ).join(", "),
@@ -85,9 +83,10 @@ const CandidateShortlistPage: React.FC = () => {
         }
 
         // Extract certifications from breakdown.certification_details
-        const certifications = breakdown.certification_details?.required?.map(
-          (c: any) => c.certificate_name
-        ) ?? [];
+        const certifications =
+          breakdown.certification_details?.required?.map(
+            (c: any) => c.certificate_name,
+          ) ?? [];
 
         return {
           id: m.employee_id ?? `c-${index}`,
@@ -98,7 +97,10 @@ const CandidateShortlistPage: React.FC = () => {
           role: m.role ?? "",
           overallFitScore: m.overall_fit_score ?? 0,
           skillMatchScore:
-            m.skill_match_score ?? breakdown.skills_match ?? breakdown.skill_match_score ?? 0,
+            m.skill_match_score ??
+            breakdown.skills_match ??
+            breakdown.skill_match_score ??
+            0,
           benchStatus:
             m.bench_status === "Bench" ||
             m.bench_status === "Partial" ||
@@ -148,7 +150,7 @@ const CandidateShortlistPage: React.FC = () => {
           clientName: reqData.client_name,
           roleTitle: reqData.role_title,
           requiredSkills: reqData.required_skills || [],
-          minimumExperience: reqData.minimum_experience || 0,
+          minimumExperience: reqData.min_experience || 0,
           mandatoryCertifications: (
             reqData.mandatory_certifications || []
           ).join(", "),
@@ -184,9 +186,10 @@ const CandidateShortlistPage: React.FC = () => {
             }
 
             // Extract certifications from breakdown.certification_details
-            const certifications = breakdown.certification_details?.required?.map(
-              (c: any) => c.certificate_name
-            ) ?? [];
+            const certifications =
+              breakdown.certification_details?.required?.map(
+                (c: any) => c.certificate_name,
+              ) ?? [];
 
             return {
               id: m.employee_id ?? `c-${index}`,
@@ -197,7 +200,10 @@ const CandidateShortlistPage: React.FC = () => {
               role: m.role ?? "",
               overallFitScore: m.overall_fit_score ?? 0,
               skillMatchScore:
-                m.skill_match_score ?? breakdown.skills_match ?? breakdown.skill_match_score ?? 0,
+                m.skill_match_score ??
+                breakdown.skills_match ??
+                breakdown.skill_match_score ??
+                0,
               benchStatus:
                 m.bench_status === "Bench" ||
                 m.bench_status === "Partial" ||
@@ -245,19 +251,21 @@ const CandidateShortlistPage: React.FC = () => {
       key: "name",
       header: "Name",
       render: (row) => (
-      <div className="flex items-center gap-2">
-        <div className="flex flex-col">
-          <span className="text-xs font-medium text-slate-900">{row.name}</span>
-          <span className="text-[11px] text-slate-500">{row.email}</span>
+        <div className="flex items-center gap-2">
+          <div className="flex flex-col">
+            <span className="text-xs font-medium text-slate-900">
+              {row.name}
+            </span>
+            <span className="text-[11px] text-slate-500">{row.email}</span>
+          </div>
+          {row.selected && (
+            <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+              ✓ Selected
+            </span>
+          )}
         </div>
-        {row.selected && (
-          <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
-            ✓ Selected
-          </span>
-        )}
-      </div>
-    ),
-  },
+      ),
+    },
     {
       key: "role",
       header: "Role",
@@ -282,22 +290,22 @@ const CandidateShortlistPage: React.FC = () => {
       header: "Bench Status",
       align: "center",
       render: (row) => {
-      if (row.selected) {
-        return (
-          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-[#00D6F2]">
-            Allocated
-          </span>
-        );
-      }
-      
-      const variant =
-        row.benchStatus === "Bench"
-          ? "bench"
-          : row.benchStatus === "Partial"
-          ? "partial"
-          : "notBench";
-      return <Badge variant={variant}>{row.benchStatus}</Badge>;
-    },
+        if (row.selected) {
+          return (
+            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-[#00D6F2]">
+              Allocated
+            </span>
+          );
+        }
+
+        const variant =
+          row.benchStatus === "Bench"
+            ? "bench"
+            : row.benchStatus === "Partial"
+              ? "partial"
+              : "notBench";
+        return <Badge variant={variant}>{row.benchStatus}</Badge>;
+      },
     },
   ];
 
@@ -322,7 +330,7 @@ const CandidateShortlistPage: React.FC = () => {
       experience_alignment: c.experience_alignment,
       relevant_projects: c.relevant_projects,
     });
-    
+
     return {
       id: c.id,
       name: c.name,
@@ -348,7 +356,10 @@ const CandidateShortlistPage: React.FC = () => {
         confidence: s.confidence,
       })),
       experience: {
-        requiredYears: c.experience_alignment?.required_years ?? requirement?.minimumExperience ?? 0,
+        requiredYears:
+          c.experience_alignment?.required_years ??
+          requirement?.minimumExperience ??
+          0,
         candidateYears: c.experience_alignment?.candidate_years ?? 0,
         projects: (c.relevant_projects || []).map((p: any) => ({
           projectName: p.project_name || "Project",
@@ -424,62 +435,109 @@ const CandidateShortlistPage: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Requirement summary card */}
-      <section className="rounded-xl border border-slate-200 bg-[color:var(--ig-blue)] text-slate-50 shadow-sm">
-        <div className="border-b border-slate-700/60 px-4 py-3 md:px-6">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex flex-col">
-              <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-300">
-                Requirement
+      <section className="rounded-2xl bg-[#00283c] text-white shadow-lg overflow-hidden border border-white/5">
+        {/* Header */}
+        <div className="flex items-center justify-between px-8 py-6 border-b border-white/10">
+          <div>
+            <p className="text-xs uppercase tracking-widest text-white/60 font-semibold">
+              Client Requirement
+            </p>
+
+            <h2 className="text-2xl font-bold mt-1">
+              {requirement.roleTitle}
+              <span className="text-white/70 font-medium">
+                {" "}
+                · {requirement.clientName}
               </span>
-              <h2 className="text-sm font-semibold md:text-base">
-                {requirement.roleTitle} · {requirement.clientName}
-              </h2>
-            </div>
-            <div className="rounded-full bg-[#00D6F2]/15 px-3 py-1 text-[11px] font-medium text-[#00D6F2]">
-              ID: {requirement.id}
-            </div>
+            </h2>
+          </div>
+
+          <div className="px-4 py-2 text-xs font-semibold rounded-lg bg-white/5 border border-white/10">
+            ID: {requirement.id}
           </div>
         </div>
-        <div className="grid gap-4 px-4 py-3 text-xs md:grid-cols-[2fr,1fr] md:px-6">
-          <div className="space-y-2">
-            <p className="text-slate-100/90">{requirement.summary}</p>
-            <div className="flex flex-wrap gap-1">
+
+        <div className="px-8 py-8 grid grid-cols-1 xl:grid-cols-[1.2fr_1fr] gap-10">
+          {/* Details */}
+          <div className="space-y-8">
+            {/* Experience & Start */}
+            <div className="flex gap-12">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-white/50">
+                  Experience
+                </p>
+                <p className="text-lg font-semibold text-[#FFFF]">
+                  {requirement.experienceText ||
+                    `${requirement.minimumExperience}+ years`}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-xs uppercase tracking-wide text-white/50">
+                  Start Date
+                </p>
+                <p className="text-lg font-semibold text-white">
+                  {requirement.availabilityDate}
+                </p>
+              </div>
+            </div>
+
+            {/* Certifications */}
+            <div>
+              <p className="text-xs uppercase tracking-wide text-white/50 mb-2">
+                Mandatory Certifications
+              </p>
+
+              <div className="inline-block px-4 py-2 rounded-lg bg-[#00283c] text-sm font-medium text-white">
+                {requirement.mandatoryCertifications || "None specified"}
+              </div>
+            </div>
+
+            {/* Optional Summary */}
+            {requirement.summary && (
+              <div>
+                <p className="text-xs uppercase tracking-wide text-white/50 mb-2">
+                  Summary
+                </p>
+                <p className="text-sm leading-relaxed text-white/80 max-w-2xl">
+                  {requirement.summary}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/*  Skills */}
+          <div className="flex flex-col items-end">
+            <p className="text-xs uppercase tracking-widest text-white/50 mb-4">
+              Required Skills
+            </p>
+
+            <div className="flex flex-wrap justify-end gap-3 max-w-[380px]">
               {requirement.requiredSkills.map((skill: string) => (
                 <span
                   key={skill}
-                  className="rounded-full bg-[color:var(--light-watermark)]/20 px-2 py-0.5 text-[11px] text-[color:var(--light-watermark)]"
+                  className="px-4 py-1.5 rounded-lg text-sm font-medium 
+                       bg-[#00D6F2]/15 
+                       border border-[#00D6F2]/40 
+                       text-white 
+                       hover:bg-[#00D6F2]/25 
+                       transition-all"
                 >
                   {skill}
                 </span>
               ))}
             </div>
           </div>
-          <div className="space-y-1 text-slate-100/90">
-            <div className="flex justify-between">
-              <span className="font-medium">Min Experience:</span>
-              <span>{requirement.minimumExperience}+ years</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="font-medium">Start Date:</span>
-              <span>{requirement.availabilityDate}</span>
-            </div>
-            <div className="flex flex-col">
-              <span className="font-medium">Mandatory Certs:</span>
-              <span className="text-[11px]">
-                {requirement.mandatoryCertifications}
-              </span>
-            </div>
-          </div>
         </div>
       </section>
 
       {/* Shortlist metrics strip */}
-      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
           <p className="text-[11px] font-medium text-slate-500">
             Candidates evaluated
           </p>
-          <p className="text-lg font-semibold text-[#00283c]">
+          <p className="text-lg font-semibold text-[#00D6F2]">
             {candidatesEvaluated}
           </p>
         </div>
@@ -487,49 +545,40 @@ const CandidateShortlistPage: React.FC = () => {
           <p className="text-[11px] font-medium text-slate-500">
             Top fit score
           </p>
-          <p className="text-lg font-semibold text-[#00D6F2]">
-            {topFit}%
-          </p>
+          <p className="text-lg font-semibold text-[#FFD700]">{topFit}%</p>
         </div>
         <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
           <p className="text-[11px] font-medium text-slate-500">
             Median fit score
           </p>
-          <p className="text-lg font-semibold text-[#FFD700]">{medianFit}%</p>
-        </div>
-        <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
-          <p className="text-[11px] font-medium text-slate-500">
-            Time to shortlist
-          </p>
-          <p className="text-lg font-semibold text-[#DB005A]">~ 3 sec</p>
+          <p className="text-lg font-semibold text-[#DB005A]">{medianFit}%</p>
         </div>
       </section>
 
       {/* Candidates table */}
-      <section 
-  className="relative space-y-3 min-h-[600px] md:min-h-[700px]"
->
+      <section className="relative space-y-3 min-h-[600px] md:min-h-[700px]">
         <div className="flex items-center justify-between">
-  <div className="flex items-center gap-2">
-    <img
-      src={DotsIcon}
-      alt=""
-      className="h-5 w-5 flex-shrink-0 -mt-0.5 md:h-6 md:w-6 lg:h-7 lg:w-7"
-    />
-    <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-700 leading-tight">
-      Candidate Shortlist
-    </h2>
-  </div>
-  <p className="text-xs text-slate-500">
-    Click a row to view detailed AI rationale.
-  </p>
-</div>
-
+          <div className="flex items-center gap-2">
+            <img
+              src={DotsIcon}
+              alt=""
+              className="h-5 w-5 flex-shrink-0 -mt-0.5 md:h-6 md:w-6 lg:h-7 lg:w-7"
+            />
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-700 leading-tight">
+              Candidate Shortlist
+            </h2>
+          </div>
+          <p className="text-xs text-slate-500">
+            Click a row to view detailed AI rationale.
+          </p>
+        </div>
 
         <Table
           columns={columns}
           data={candidates}
-          onRowClick={async (row) => {            console.log("Selected candidate data:", row);            setSelectedCandidate(row);
+          onRowClick={async (row) => {
+            console.log("Selected candidate data:", row);
+            setSelectedCandidate(row);
             setFitOpen(true);
           }}
         />
@@ -562,19 +611,18 @@ const CandidateShortlistPage: React.FC = () => {
             }
             const json = await res.json();
             console.log(" Candidate selected:", json);
-              setCandidates((prev) =>
-      prev.map((c) =>
-        c.id === selectedCandidate.id ? { ...c, selected: true } : c
-      )
-    );
+            setCandidates((prev) =>
+              prev.map((c) =>
+                c.id === selectedCandidate.id ? { ...c, selected: true } : c,
+              ),
+            );
             setFitOpen(false);
           } catch (e: any) {
             console.error("Select candidate failed:", e);
             alert(e.message || "Failed to select candidate");
+          } finally {
+            setSelectLoading(false);
           }
-          finally {
-    setSelectLoading(false);
-  }
         }}
         candidate={selectedCandidate ? toFitData(selectedCandidate) : null}
         loading={selectLoading}
